@@ -7,15 +7,15 @@
     </el-text>
     <div class="bottom">
       <span class="details">
+        <span class="iconfont icon-eye"></span>
+        <span>200</span>
+      </span>
+      <span class="details">
         <span class="iconfont icon-like"></span>
         <span>200</span>
       </span>
       <span class="details">
-        <span class="iconfont icon-comments"></span>
-        <span>200</span>
-      </span>
-      <span class="details">
-        <span class="iconfont icon-share"></span>
+        <span class="iconfont icon-star"></span>
         <span>200</span>
       </span>
     </div>
@@ -64,7 +64,7 @@
     align-items: center;
 
     span:nth-child(1) {
-      color: $primary-color;
+      // color: $primary-color;
       margin-right: 5px;
     }
 

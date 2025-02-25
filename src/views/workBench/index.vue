@@ -2,22 +2,22 @@
   <div class="workBenchBox">
     <div class="top">
       <div class="left">
-        <div class="myDiv">
+        <div class="myDiv" @click="toOpenDialog(1)">
           <span>加入会议</span>
           <span class="iconfont icon-add"></span>
         </div>
-        <div class="myDiv">
+        <div class="myDiv" @click="toOpenDialog(2)">
           <span>快速会议</span>
           <span class="iconfont icon-video"></span>
         </div>
-        <div class="myDiv">
+        <div class="myDiv" @click="toOpenDialog(3)">
           <span>预约会议</span>
           <span class="iconfont icon-list"></span>
         </div>
       </div>
       <div class="right">
         <div class="forumsBox">
-          <ForumSmallCard v-for="item in 3" />
+          <ForumSmallCard @click="$router.push('/forum/1')" v-for="item in 3" />
         </div>
         <button class="button">
           <svg
@@ -53,13 +53,168 @@
       </div>
     </div>
   </div>
+
+  <el-dialog
+    draggable="true"
+    v-model="dialogVisible"
+    :title="title"
+    width="600"
+  >
+    <el-form
+      :model="addFormData"
+      label-width="80px"
+      label-position="top"
+      v-if="status === 1"
+    >
+      <el-form-item label="会议编号">
+        <el-input
+          v-model="addFormData.number"
+          placeholder="请输入编号"
+        ></el-input>
+      </el-form-item>
+      <el-form-item label="入会名称">
+        <el-input
+          v-model="addFormData.name"
+          placeholder="请输入昵称"
+        ></el-input>
+      </el-form-item>
+      <el-form-item label="会议设置">
+        <el-checkbox
+          v-model="addFormData.audio"
+          label="开启麦克风"
+          size="large"
+        />
+        <el-checkbox
+          v-model="addFormData.video"
+          label="开启摄像头"
+          size="large"
+        />
+      </el-form-item>
+    </el-form>
+    <span v-if="status === 2">您确定要开始快速会议吗</span>
+    <el-form v-if="status===3" :model="bookData" label-width="50px">
+      <el-form-item label="主题">
+        <el-input v-model="bookData.title" placeholder=""></el-input>
+      </el-form-item>
+      <el-form-item label="开始">
+        <el-date-picker
+          v-model="bookData.creatTime"
+          type="datetime"
+          placeholder="datetime"
+        ></el-date-picker>
+      </el-form-item>
+      <el-form-item label="时长">
+        <el-select v-model="bookData.time" placeholder="">
+          <el-option
+            v-for="(item, index) in 4"
+            :key="item"
+            :label="(index+1) * 15"
+            :value="item"
+          >
+          </el-option>
+        </el-select>
+      </el-form-item>
+      <el-form-item label="代办">
+        <el-checkbox
+          label="添加到代办事项"
+          v-model="bookData.isBook"
+        ></el-checkbox>
+      </el-form-item>
+      <el-form-item label="方式">
+        <el-radio-group v-model="bookData.needAddress">
+          <el-radio label="线上" :value="false"></el-radio>
+          <el-radio label="线下" :value="true"></el-radio>
+        </el-radio-group>
+      </el-form-item>
+
+      <el-form-item v-if="bookData.needAddress" label="地址">
+        <Map></Map>
+      </el-form-item>
+
+      <el-form-item label="隐私">
+        <el-radio-group v-model="bookData.isPrivate">
+          <el-radio label="公开" :value="true"></el-radio>
+          <el-radio label="私有" :value="false"></el-radio>
+        </el-radio-group>
+      </el-form-item>
+      <el-form-item label="密码">
+        <el-checkbox
+          label="是否需要密码"
+          v-model="bookData.needPassword"
+        ></el-checkbox>
+      </el-form-item>
+      <el-form-item v-if="bookData.needPassword">
+        <el-input
+          v-model="bookData.password"
+          placeholder=""
+        ></el-input>
+      </el-form-item>
+      <el-form-item label="文档">
+        <el-button type="primary" text="plain">添加参会文档</el-button>
+        <el-button type="primary" text="plain">AI生成参赛文档</el-button>
+      </el-form-item>
+      <el-form-item label="录制">
+        <el-radio-group v-model="bookData.needRecord">
+          <el-radio label="开启录制" :value="true"></el-radio>
+          <el-radio label="关闭录制" :value="false"></el-radio>
+        </el-radio-group>
+      </el-form-item>
+    </el-form>
+    <template #footer>
+      <div class="dialog-footer">
+        <el-button @click="dialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="dialogVisible = false">
+          确认
+        </el-button>
+      </div>
+    </template>
+  </el-dialog>
 </template>
 
 <script lang="ts" setup>
 import ForumSmallCard from "../forum/components/forumSmallCard.vue";
-import { Refresh } from "@element-plus/icons-vue";
 import Meeting from "../workBench/components/meeting.vue";
 import Schedule from "../workBench/components/schedule.vue";
+import { ref } from "vue";
+import Map from "../components/Map.vue";
+
+// 1 加入会议 2 快速会议 3 预约会议
+const status = ref(1);
+const title = ref("");
+const dialogVisible = ref(false);
+
+const toOpenDialog = (i: number) => {
+  status.value = i;
+  title.value =
+    status.value === 1
+      ? "加入会议"
+      : status.value === 2
+      ? "快速会议"
+      : "预约会议";
+
+  dialogVisible.value = true;
+};
+
+const form = ref();
+const addFormData = ref({
+  number: "",
+  name: "",
+  audio: false,
+  video: false,
+});
+
+const bookData = ref({
+  title: "",
+  creatTime: "",
+  time: 30,
+  isBook: false,
+  needPassword: false,
+  password: "",
+  isPrivate: false,
+  needAddress: false,
+  address: "",
+  needRecord: false,
+});
 </script>
 
 <style lang="scss" scoped>

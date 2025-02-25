@@ -1,7 +1,7 @@
 <template>
   <div class="headerBox">
     <div class="welcomeText">
-      <h3>Hey,李泽言</h3>
+      <h3>Hey,{{ userStore.user?.username }}</h3>
       <h6>欢迎回来，很高兴再次见到你</h6>
     </div>
     <div class="searchContent">
@@ -26,7 +26,7 @@
         </button>
         <input
           class="input"
-          placeholder="Type your text"
+          placeholder="请键入你的关键字"
           required
           type="text"
           v-model="searchText"
@@ -51,17 +51,18 @@
     </div>
     <div class="informationContent">
       <el-dropdown>
-        <span style="display: flex;align-items: center;outline: none;">
-          <el-avatar> user </el-avatar>
+        <span style="display: flex; align-items: center; outline: none">
+          <el-avatar :src="userStore.user?.avatar">user</el-avatar>
           <el-icon size="20" style="color: #79869f; margin-left: 15px"
             ><ArrowDown
           /></el-icon>
         </span>
         <template #dropdown>
           <el-dropdown-menu>
-            <el-dropdown-item>Action 1</el-dropdown-item>
-            <el-dropdown-item>Action 2</el-dropdown-item>
-            <el-dropdown-item>Action 3</el-dropdown-item>
+            <el-dropdown-item>消息中心</el-dropdown-item>
+            <el-dropdown-item @click="$router.push('/login')"
+              >退出登录</el-dropdown-item
+            >
           </el-dropdown-menu>
         </template>
       </el-dropdown>
@@ -73,13 +74,17 @@
       /></el-icon>
     </div>
   </div>
+  <div class="zhanwei"></div>
 </template>
 
 <script lang="ts" setup>
 import { ref } from "vue";
 import { ArrowDown, Search } from "@element-plus/icons-vue";
+import { useUserStore } from "@/stores/userStore";
 
 const searchText = ref("");
+
+const userStore = useUserStore();
 </script>
 
 <style lang="scss" scoped>
@@ -199,10 +204,15 @@ const searchText = ref("");
 
   .informationContent {
     width: 400px;
-    margin-right: 60px;
+    margin-right: 40px;
     display: flex;
     align-items: center;
     // background-color: red;
   }
+}
+
+.zhanwei {
+  height: 100px;
+  width: calc(100vw - 300px);
 }
 </style>

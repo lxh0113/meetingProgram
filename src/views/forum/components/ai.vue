@@ -48,6 +48,7 @@ const sendText = ref("");
   flex-direction: column;
   justify-content: space-between;
   overflow: hidden;
+  min-height: calc(100vh - 140px);
 
   .title {
     background-color: $primary-color;

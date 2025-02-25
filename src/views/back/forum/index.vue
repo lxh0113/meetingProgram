@@ -1,0 +1,201 @@
+<template>
+  <div class="forumBox">
+    <div class="top">
+      <div class="left">
+        <div class="myBox">
+          <div class="text">
+            <span class="number">
+              128
+            </span>
+            <span class="description">在线帖主</span>
+          </div>
+          <div class="svg">
+            <div class="border">
+              <el-icon :size="20" style="color: white;"><Document /></el-icon>
+            </div>
+          </div>
+        </div>
+
+        <div class="myBox">
+          <div class="text">
+            <span class="number">
+              21.3K
+            </span>
+            <span class="description">今日帖子访问量</span>
+          </div>
+          <div class="svg">
+            <div class="border">
+              <el-icon :size="20" style="color: white;"><Document /></el-icon>
+            </div>
+          </div>
+        </div>
+
+        <div class="myBox">
+          <div class="text">
+            <span class="number">
+              1200
+            </span>
+            <span class="description">活跃用户</span>
+          </div>
+          <div class="svg">
+            <div class="border">
+              <el-icon :size="20" style="color: white;"><Document /></el-icon>
+            </div>
+          </div>
+        </div>
+       
+      </div>
+      <div class="right">
+        <span class="title">论坛热词</span>
+        <img
+          src="./1.jpg"
+        ></img>
+      </div>
+    </div>
+    <div class="bottom">
+      <el-table :data="tableData" style="width: 100%">
+        <el-table-column prop="id" label="id" />
+        <el-table-column prop="username" label="名称" />
+        <el-table-column label="头像">
+          <template #default="scope">
+            <el-avatar :src="scope.row.avatar">user</el-avatar>
+          </template>
+        </el-table-column>
+        <el-table-column prop="views" label="浏览" />
+        <el-table-column prop="likes" label="点赞" />
+        <el-table-column prop="star" label="收藏" />
+        <el-table-column prop="replyNumber" label="回帖数量" />
+        <el-table-column label="操作" width="180">
+          <template #default="scope">
+            <el-button type="success">查看</el-button>
+            <el-button type="danger">删除</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+    </div>
+  </div>
+</template>
+
+<script lang="ts" setup>
+import { onMounted, ref } from "vue";
+
+const tableData = ref([
+  {
+    id: 1,
+    title: "12",
+    username: "12",
+    avatar: "",
+    views: 12,
+    likes: 123,
+    star: 123,
+    replyNumber: 123,
+  },
+]);
+
+onMounted(() => {});
+</script>
+
+<style lang="scss" scoped>
+.forumBox {
+  box-sizing: border-box;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+
+  .top {
+    display: flex;
+
+    > .left {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 20px;
+
+      .myBox {
+        display: flex;
+        justify-content: space-between;
+        box-sizing: border-box;
+        padding: 20px;
+        color:white;
+        background: linear-gradient(134.72deg, rgb(247, 72, 95) 0%, rgba(255, 138, 72, 1) 100%);
+        border-radius: 20px;
+        transition: all .5s;
+
+        &:hover {
+          transform: translateY(-4px);
+          box-shadow: rgba(17, 17, 26, 0.1) 0px 4px 16px,
+            rgba(17, 17, 26, 0.1) 0px 8px 24px,
+            rgba(17, 17, 26, 0.1) 0px 16px 56px;
+        }
+
+        .text{
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          margin-right: 20px;
+
+          .number{
+            font-size: 24px;
+            font-weight: bold;
+          }
+
+          .description{
+            margin-top: 10px;
+          }
+        }
+
+        .svg{
+
+          .border{
+            background-color: rgba($color: #fff, $alpha:0.4);
+            padding: 10px;
+            border-radius: 50%;
+          }
+        }
+      }
+
+      .myBox:nth-child(2){
+        background: linear-gradient(134.72deg, rgba(98, 202, 118, 1) 0%, rgba(34, 204, 226, 1) 100%);
+      }
+
+      .myBox:nth-child(3){
+        background: linear-gradient(134.72deg, rgba(63, 126, 246, 1) 0%, rgba(34, 204, 226, 1) 100%);
+      }
+    }
+
+    > .right {
+      border: 1px solid $primary-border-color;
+      margin-left: 20px;
+      border-radius: 20px;
+      width: 600px;
+      box-sizing: border-box;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      height: 160px;
+      box-sizing: border-box;
+      overflow: hidden;
+      transition: all .5s;
+
+        &:hover {
+          transform: translateY(-4px);
+          box-shadow: rgba(17, 17, 26, 0.1) 0px 4px 16px,
+            rgba(17, 17, 26, 0.1) 0px 8px 24px,
+            rgba(17, 17, 26, 0.1) 0px 16px 56px;
+        }
+
+      .title {
+        font-weight: bold;
+        color: $primary-color;
+      }
+
+      img{
+        height: 100px;
+      }
+    }
+  }
+
+  .bottom {
+    margin-top: 40px;
+  }
+}
+</style>

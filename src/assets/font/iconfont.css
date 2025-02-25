@@ -1,8 +1,8 @@
 @font-face {
   font-family: "iconfont"; /* Project id 4819541 */
-  src: url('iconfont.woff2?t=1738810273839') format('woff2'),
-       url('iconfont.woff?t=1738810273839') format('woff'),
-       url('iconfont.ttf?t=1738810273839') format('truetype');
+  src: url('iconfont.woff2?t=1739975071949') format('woff2'),
+       url('iconfont.woff?t=1739975071949') format('woff'),
+       url('iconfont.ttf?t=1739975071949') format('truetype');
 }
 
 .iconfont {
@@ -11,6 +11,74 @@
   font-style: normal;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+.icon-meeting:before {
+  content: "\e86e";
+}
+
+.icon-user:before {
+  content: "\e610";
+}
+
+.icon-error:before {
+  content: "\e656";
+}
+
+.icon-star:before {
+  content: "\e7df";
+}
+
+.icon-eye:before {
+  content: "\e78f";
+}
+
+.icon-password:before {
+  content: "\ea32";
+}
+
+.icon-custom-user:before {
+  content: "\e632";
+}
+
+.icon-password1:before {
+  content: "\e82b";
+}
+
+.icon-tel:before {
+  content: "\e676";
+}
+
+.icon-edit:before {
+  content: "\e732";
+}
+
+.icon-share1:before {
+  content: "\e6f3";
+}
+
+.icon-add1:before {
+  content: "\e621";
+}
+
+.icon-recommend:before {
+  content: "\e728";
+}
+
+.icon-refresh:before {
+  content: "\e6a2";
+}
+
+.icon-schedule:before {
+  content: "\e82e";
+}
+
+.icon-book:before {
+  content: "\e63c";
+}
+
+.icon-107meeting:before {
+  content: "\e7a7";
 }
 
 .icon-time:before {

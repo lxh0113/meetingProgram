@@ -2,12 +2,12 @@
   <div class="userBox">
     <div class="left">
       <div class="top">
-        <el-avatar :size="90">user</el-avatar>
-        <span class="userName">匿名</span>
+        <el-avatar :src="userStore.user!.avatar" :size="90">user</el-avatar>
+        <span class="userName">{{ userData.username }}</span>
       </div>
       <div class="bottom">
-        <span>帖子 200+</span>
-        <span>获赞 200+</span>
+        <span>帖子 {{ userData.postCount }}+</span>
+        <span>获赞 {{ userData.likeCount }}+</span>
       </div>
     </div>
     <div class="right">
@@ -17,11 +17,12 @@
           <el-form-item label="头像">
             <el-upload
               v-model:file-list="fileList"
-              action="https://run.mocky.io/v3/9d059bf9-4660-45f2-925d-ce80ad6c4d15"
+              :action="baseUrl + '/oss/avatar'"
               list-type="picture-card"
               :on-preview="handlePictureCardPreview"
               :on-remove="handleRemove"
               :limit="1"
+              :on-success="handleAvatarSuccess"
             >
               <el-icon><Plus /></el-icon>
             </el-upload>
@@ -35,7 +36,7 @@
             <el-input v-model="userData.username" placeholder=""></el-input>
           </el-form-item>
           <el-form-item label="性别" style="flex: 1">
-            <el-input v-model="userData.gender" placeholder=""></el-input>
+            <el-input v-model="userData.sex" placeholder=""></el-input>
           </el-form-item>
         </div>
         <div class="twoInput">
@@ -46,12 +47,16 @@
             <el-input v-model="userData.email" placeholder=""></el-input>
           </el-form-item>
           <el-form-item label="电话号码" style="flex: 1">
-            <el-input v-model="userData.tel" placeholder=""></el-input>
+            <el-input v-model="userData.phone" placeholder=""></el-input>
           </el-form-item>
         </div>
         <div class="twoInput">
           <el-form-item label="新密码" style="flex: 1; margin-right: 20px">
-            <el-input v-model="userData.password" placeholder=""></el-input>
+            <el-input
+              v-model="newPassword"
+              type="password"
+              placeholder=""
+            ></el-input>
           </el-form-item>
           <el-form-item label="验证码" style="flex: 1">
             <el-input
@@ -59,11 +64,16 @@
               v-model="captcha"
               placeholder=""
             ></el-input>
-            <el-button type="primary">获取验证码</el-button>
+            <el-button type="primary" @click="getCatpcha">{{
+              captchaText
+            }}</el-button>
           </el-form-item>
         </div>
         <div class="twoInput">
-          <el-button style="width: 100%; margin-top: 20px" type="primary"
+          <el-button
+            style="width: 100%; margin-top: 20px"
+            type="primary"
+            @click="submit"
             >提交</el-button
           >
         </div>
@@ -73,25 +83,37 @@
 </template>
 
 <script lang="ts" setup>
-import { ref } from "vue";
+import { onMounted, ref } from "vue";
 import { Plus } from "@element-plus/icons-vue";
 
-import type { UploadProps, UploadUserFile } from "element-plus";
+import { ElMessage, type UploadProps, type UploadUserFile } from "element-plus";
+import { getUserInfoAPI, updateAPI } from "@/apis/users";
+import { useUserStore } from "@/stores/userStore";
+import type { UserInfo } from "@/types/home";
+import { baseUrl } from "@/utils/baseUrl";
+import { sendVerificationCodeAPI } from "@/apis/email";
+import { emailRegexp } from "@/utils/regexp";
 
-const userData = ref({
+const newPassword = ref("");
+const userData = ref<UserInfo>({
+  id: 1,
+  account: "",
   avatar: "",
-  username: "",
-  gender: "女",
   email: "",
-  tel: "",
-  password: "",
+  phone: "",
+  sex: "",
+  username: "",
+  likeCount: 1,
+  postCount: 1,
+  postIds: [],
+  meetingIds: [],
 });
 
-const captcha = ref("");
+const captcha = ref<string | null>("");
 
 const fileList = ref<UploadUserFile[]>([
   {
-    name: "food.jpeg",
+    name: "1.jpeg",
     url: "https://fuss10.elemecdn.com/3/63/4e7f3a15429bfda99bce42a18cdd1jpeg.jpeg?imageMogr2/thumbnail/360x360/format/webp/quality/100",
   },
 ]);
@@ -107,6 +129,90 @@ const handlePictureCardPreview: UploadProps["onPreview"] = (uploadFile) => {
   dialogImageUrl.value = uploadFile.url!;
   dialogVisible.value = true;
 };
+
+const userStore = useUserStore();
+
+const handleAvatarSuccess: UploadProps["onSuccess"] = (
+  response,
+  uploadFile
+) => {
+  console.log(response.data);
+  userData.value.avatar = response.data;
+  userStore.setUserInfo({
+    ...userStore.user!,
+    avatar: response.data,
+  });
+
+  submit();
+};
+
+const getUserInfo = async () => {
+  const res = await getUserInfoAPI(userStore.user!.account);
+
+  if (res.data.code === 200) {
+    console.log(res.data.data);
+    userData.value = res.data.data;
+    fileList.value[0].url = userData.value.avatar;
+  } else ElMessage.error("获取出错");
+};
+
+let second = 60;
+const captchaText = ref("获取验证码");
+
+const changeCaptchaText = () => {
+  let timer = setInterval(() => {
+    second--;
+    if (second < 0) {
+      clearInterval(timer);
+      second = 60;
+      captchaText.value = "获取验证码";
+    } else captchaText.value = "还剩下" + second + "秒";
+  }, 1000);
+};
+
+const getCatpcha = async () => {
+  if (captchaText.value !== "获取验证码") {
+    ElMessage.error("验证码已发送");
+    return;
+  }
+
+  if (!emailRegexp.test(userData.value.email)) {
+    ElMessage.error("邮箱格式错误");
+    return;
+  }
+
+  const res = await sendVerificationCodeAPI(userData.value.email);
+
+  if (res.data.code === 200) {
+    changeCaptchaText();
+    ElMessage.success("验证码已发送");
+  } else {
+    ElMessage.error(res.data.message);
+  }
+};
+
+const submit = async () => {
+  const res = await updateAPI(captcha.value, {
+    account: userData.value.account,
+    avatar: userData.value.avatar,
+    email: userData.value.email,
+    phone: userData.value.phone,
+    sex: userData.value.sex,
+    username: userData.value.username,
+    password: userData.value.password,
+  });
+
+  if (res.data.code === 200) {
+    ElMessage.success("修改成功");
+    userStore.setUserInfo(userData.value);
+  } else {
+    ElMessage.error(res.data.message);
+  }
+};
+
+onMounted(() => {
+  getUserInfo();
+});
 </script>
 
 <style lang="scss" scoped>
@@ -156,7 +262,7 @@ const handlePictureCardPreview: UploadProps["onPreview"] = (uploadFile) => {
     padding: 20px;
     box-sizing: border-box;
 
-    .title{
+    .title {
       margin-bottom: 10px;
     }
 

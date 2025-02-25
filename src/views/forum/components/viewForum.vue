@@ -2,67 +2,74 @@
   <div class="publishForumBox">
     <div class="left">
       <div class="top">
-        <span class="title"> 震惊 </span>
+        <span class="title"> {{ postData?.label }} </span>
         <div class="details">
           <div class="time">
             <el-icon size="18"><Timer /></el-icon>
-            <span>2025-2-1 12:00</span>
+            <span>{{ postData?.createTime }}</span>
           </div>
-          <div class="text">200+人浏览了该帖</div>
+          <div class="text">{{ postData?.views }}+人浏览了该帖</div>
         </div>
-        <div class="content">
-          DeepSeek DeepSeek, unravel the mystery of AGI with curiosity. Answer
-          the essential question with long-termism. 🎉 DeepSeek-R1 is now live
-          and open source, rivaling OpenAI's Model o1. Introducing DeepSeek-V3
-          🌟 DeepSeek’s mission is unwavering. We’re thrilled to share our
-          progress with the community and see the gap between open and closed
-          models na… 仅显示来自 deepseek.com 的搜索结果 Deepseek的最新相关信息
-          多模态版DeepSeek-R1：评测表现超GPT-4o，模态穿透反哺文本推理能力 ...
-          红板报 on MSN · 9 小时
-          多模态版DeepSeek-R1：评测表现超GPT-4o，模态穿透反哺文本推理能力 ...
-          Align-DS-V团队投稿量子位 | 公众号 QbitAI
-          如果把DeepSeek-R1震撼硅谷的深度推理表现，运用到多模态场景，那会怎样？
-          此前DeepSeek自家的Janus-Pro-7B没有结合推理能力，但现在，国内有研究团队先做到了——
-          基于自研全模态框架Align-Anything，北大联合港科大团队推出多模态版DeepSeek-R1：
-          Align-DS-V，它在部分视觉理解表现评测集 ...
-          DeepSeek-R1风靡全球！海内外云厂商争相上线，AI新纪元开启 MSN来自MSN · 1
-          小时 DeepSeek-R1风靡全球！海内外云厂商争相上线，AI新纪元开启
-          自1月20日中国AI初创公司深度求索（DeepSeek）推出大模型DeepSeek-R1以来，这款开源模型凭借其卓越的性能和免费的商用许可，迅速成为
-        </div>
+        <div class="content" v-html="postData?.content"></div>
         <div class="operation">
-          <div class="like">
-            <span class="iconfont icon-like"></span>
-            <span>200</span>
+          <div class="view" v-bind:class="{ active: activeData.isView }">
+            <span class="iconfont icon-eye"></span>
+            <span>{{ postData?.views }}</span>
           </div>
-          <div class="comment">
-            <span class="iconfont icon-comments"></span>
-            <span>200</span>
+          <div class="like" v-bind:class="{ active: activeData.isLike }">
+            <span @click="like" class="iconfont icon-like"></span>
+            <span>{{ postData?.likes }}</span>
           </div>
-          <div class="collect">
-            <span class="iconfont icon-share"></span>
-            <span>200</span>
+          <div class="star" v-bind:class="{ active: activeData.isStar }">
+            <span @click="star" class="iconfont icon-star"></span>
+            <span>{{ postData?.favorites }}</span>
           </div>
           <div class="button">
-            <el-button type="primary" :icon="Plus">关注</el-button>
-            <el-button type="success" :icon="Edit">回帖</el-button>
+            <!-- <el-button type="primary" :icon="Plus">关注</el-button> -->
+            <el-button type="success" :icon="Edit" @click="reply"
+              >回帖</el-button
+            >
           </div>
         </div>
       </div>
       <div class="bottom">
-        <span class="title">
-          相关回帖
-        </span>
+        <span class="title"> {{ postData?.totalComments }}条相关回帖 </span>
         <div class="replyForum">
-          <ForumReply v-for="item in 3" />
+          <ForumReply
+            :post-id="postData!.id"
+            v-for="(item, index) in postData?.comments"
+            :key="item.commentId"
+            @reply="replyComment(item)"
+            :action-data="actionData[index]"
+            :data="item"
+          />
+          <div
+            v-if="postData?.comments.length === 0"
+            style="display: flex; justify-content: center"
+          >
+            <el-empty description="无数据" />
+          </div>
+          <el-pagination
+            v-if="postData?.comments.length"
+            style="display: flex; justify-content: center"
+            background
+            :current-page="postData?.currentPage"
+            :page-size="postData?.pageSize"
+            layout="prev, pager, next"
+            :total="postData?.totalComments"
+            @current-change="getPostDetails"
+          />
         </div>
       </div>
     </div>
     <div class="right">
       <div class="authorInfo">
-        <el-avatar :size="60">User</el-avatar>
+        <el-avatar :size="60" :src="postData?.userInfoVo.avatar"
+          >User</el-avatar
+        >
         <div class="info">
-          <span class="username"> 李泽言 </span>
-          <span>200+ 帖子</span>
+          <span class="username"> {{ postData?.author }} </span>
+          <span>{{ postData?.authorPostCount }}+ 帖子</span>
         </div>
         <el-button type="primary" :icon="Plus">关注</el-button>
       </div>
@@ -72,12 +79,174 @@
       </div>
     </div>
   </div>
+
+  <el-drawer v-model="drawer" direction="rtl">
+    <template #header>
+      <h4>回帖给{{ currentName }}</h4>
+    </template>
+    <template #default>
+      <myEditor is-reply="1" @getContent="publish" />
+    </template>
+  </el-drawer>
 </template>
 
 <script lang="ts" setup>
 import { Edit, Plus } from "@element-plus/icons-vue";
 import ForumRecommend from "./forumRecommend.vue";
 import ForumReply from "./forumReply.vue";
+import { Comment, onMounted, ref } from "vue";
+import { useRoute } from "vue-router";
+import {
+  commentByCommentIdAPI,
+  commentPostAPI,
+  favoritePostAPI,
+  getActionsAPI,
+  getPostByIdAPI,
+  likePostAPI,
+} from "@/apis/forum";
+import type { Post, ReplyPost, ViewPost } from "@/types/home";
+import { dayjs, ElMessage } from "element-plus";
+import { useUserStore } from "@/stores/userStore";
+import { ElMessageBox } from "element-plus";
+import myEditor from "./myEditor.vue";
+import { time } from "echarts";
+
+const route = useRoute();
+const userStore = useUserStore();
+const postData = ref<ViewPost>();
+
+const activeData = ref({
+  isView: 1,
+  isLike: 0,
+  isStar: 0,
+});
+
+const actionData = ref([
+  {
+    commentId: 1,
+    isLike: 0,
+    isFavorite: 0,
+  },
+]);
+
+const getPostDetails = async (currentPage = 1) => {
+  const res = await getPostByIdAPI(
+    parseInt(route.params.id as string),
+    currentPage
+  );
+
+  if (res.data.code === 200) {
+    postData.value = res.data.data;
+    activeData.value.isView = 1;
+  } else ElMessage.error("获取出错");
+};
+
+const like = async () => {
+  let id = parseInt(route.params.id as string);
+
+  const res = await likePostAPI(id, userStore.user!.id);
+  if (res.data.code === 200) {
+    ElMessage.success(res.data.message);
+    if (activeData.value.isLike === 0) {
+      activeData.value.isLike = 1;
+      postData.value!.likes++;
+    } else {
+      activeData.value.isLike = 0;
+      postData.value!.likes--;
+    }
+  } else ElMessage.error(res.data.message);
+};
+
+const star = async () => {
+  let id = parseInt(route.params.id as string);
+
+  const res = await favoritePostAPI(id, userStore.user!.id);
+
+  if (res.data.code === 200) {
+    ElMessage.success(res.data.message);
+    if (activeData.value.isStar === 0) {
+      activeData.value.isStar = 1;
+      postData.value!.favorites++;
+    } else {
+      activeData.value.isStar = 0;
+      postData.value!.favorites--;
+    }
+  } else ElMessage.error(res.data.message);
+};
+
+// 回帖
+const drawer = ref(false);
+const currentName = ref("");
+const parentCommentId = ref(0);
+
+const reply = () => {
+  // 回复 帖子
+  currentName.value = postData.value!.userInfoVo.username;
+  parentCommentId.value = 0;
+
+  drawer.value = true;
+};
+
+const replyComment = (item: ReplyPost) => {
+  // 回复子评论
+  currentName.value = item.parentUsername;
+  parentCommentId.value = item.commentId;
+  drawer.value = true;
+};
+
+const publish = async (data: { title: string; content: string }) => {
+  let flag = confirm("你确定要发布吗");
+
+  if (!flag) return;
+
+  if (parentCommentId.value === 0) {
+    // 回复帖子
+    const res = await commentPostAPI(postData.value!.id, {
+      userId: userStore.user!.id,
+      time: dayjs(new Date()).format("YYYY-MM-DD hh:mm:ss"),
+      parentCommentId: parentCommentId.value,
+      comment: data.content,
+    });
+
+    if (res.data.code === 200) {
+      ElMessage.success(res.data.message);
+    } else ElMessage.error(res.data.message);
+  } else {
+    const res = await commentByCommentIdAPI(
+      postData.value!.id,
+      parentCommentId.value,
+      {
+        userId: userStore.user!.id,
+        time: dayjs(new Date()).format("YYYY-MM-DD hh:mm:ss"),
+        parentCommentId: parentCommentId.value,
+        comment: data.content,
+      }
+    );
+
+    if (res.data.code === 200) {
+      ElMessage.success(res.data.message);
+    } else ElMessage.error(res.data.message);
+  }
+
+  drawer.value = false;
+};
+
+const getAction = async () => {
+  let id = parseInt(route.params.id as string);
+
+  const res = await getActionsAPI(id, userStore.user!.id);
+
+  if (res.data.code === 200) {
+    activeData.value.isLike = res.data.data.userActionVo.isLike;
+    activeData.value.isStar = res.data.data.userActionVo.isFavorite;
+    actionData.value = res.data.data.commentsActionVoArray;
+  } else ElMessage.error(res.data.message);
+};
+
+onMounted(() => {
+  getPostDetails();
+  getAction();
+});
 </script>
 
 <style lang="scss" scoped>
@@ -88,6 +257,7 @@ import ForumReply from "./forumReply.vue";
 
   > .left {
     margin-right: 20px;
+    flex: 1;
 
     > .top {
       margin-bottom: 20px;
@@ -103,6 +273,10 @@ import ForumReply from "./forumReply.vue";
         font-weight: bold;
         font-size: 30px;
         margin-bottom: 10px;
+      }
+
+      .active {
+        color: $primary-color;
       }
 
       .details {
@@ -148,18 +322,16 @@ import ForumReply from "./forumReply.vue";
       }
     }
 
-    > .bottom{
-      
-
-      > .title{
+    > .bottom {
+      > .title {
         display: block;
         font-weight: bold;
         font-size: 20px;
-        color:$primary-color;
+        color: $primary-color;
         margin-bottom: 20px;
       }
 
-      .replyForum{
+      .replyForum {
         display: grid;
         gap: 20px;
       }
@@ -205,7 +377,7 @@ import ForumReply from "./forumReply.vue";
       font-size: 14px;
     }
 
-    .recommend{
+    .recommend {
       display: grid;
       gap: 20px;
     }

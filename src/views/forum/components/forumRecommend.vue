@@ -71,7 +71,7 @@
     align-items: center;
 
     span:nth-child(1) {
-      color: $primary-color;
+      // color: $primary-color;
       margin-right: 5px;
     }
 

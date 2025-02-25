@@ -1,7 +1,11 @@
 <template>
   <div class="myMenu">
     <div class="logoBox">
-      <img @click="$router.push('/home')" src="../../assets/img/智慧通logo.png" alt="" />
+      <img
+        @click="$router.push('/home')"
+        src="../../assets/img/智慧通logo.png"
+        alt=""
+      />
     </div>
     <el-menu
       style="
@@ -14,53 +18,27 @@
       class="el-menu-vertical-demo"
       router
     >
-      <el-menu-item index="/home">
+      <el-menu-item v-for="(item, index) in props.nav" :index="item.path">
         <span
           style="margin-left: 20px; margin-right: 10px"
-          class="iconfont icon-caidan"
+          :class="'iconfont icon-' + item.icon"
         ></span>
-        <span>工作台</span>
-      </el-menu-item>
-      <el-menu-item index="/forum">
-        <span
-          style="margin-left: 20px; margin-right: 10px"
-          class="iconfont icon-forum"
-        ></span>
-        <span>论坛</span>
-      </el-menu-item>
-      <el-menu-item index="/ai">
-        <span
-          style="margin-left: 20px; margin-right: 10px"
-          class="iconfont icon-Ai"
-        ></span>
-        <span>智通精灵</span>
-      </el-menu-item>
-      <el-menu-item index="/message">
-        <span
-          style="margin-left: 20px; margin-right: 10px"
-          class="iconfont icon-message"
-        ></span>
-        <span>消息中心</span>
-      </el-menu-item>
-      <el-menu-item index="/user">
-        <span
-          style="margin-left: 20px; margin-right: 10px"
-          class="iconfont icon-information"
-        ></span>
-        <span>个人中心</span>
+        <span>{{ item.text }}</span>
       </el-menu-item>
     </el-menu>
   </div>
-  <div class="zhanwei"></div>
+  <!-- <div class="zhanwei"></div> -->
 </template>
 
 <script lang="ts" setup>
-import {
-  Document,
-  Menu as IconMenu,
-  Location,
-  Setting,
-} from "@element-plus/icons-vue";
+import type { NavList } from "@/types/home";
+
+const props = withDefaults(
+  defineProps<{
+    nav: NavList;
+  }>(),
+  {}
+);
 </script>
 
 <style lang="scss" scoped>
@@ -104,5 +82,6 @@ import {
 
 .zhanwei {
   width: 240px;
+  height: 100%;
 }
 </style>

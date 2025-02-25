@@ -12,6 +12,29 @@ const router = createRouter({
       component: () => import("../views/register/index.vue"),
     },
     {
+      path: "/back",
+      component: () => import("../views/back/index.vue"),
+      redirect:"/back/user",
+      children: [
+        {
+          path: "user",
+          component: () => import("../views/back/user/index.vue"),
+        },
+        {
+          path: "meeting",
+          component: () => import("../views/back/meeting/index.vue"),
+        },
+        {
+          path: "badwords",
+          component: () => import("../views/back/badwords/index.vue"),
+        },
+        {
+          path: "forum",
+          component: () => import("../views/back/forum/index.vue"),
+        },
+      ],
+    },
+    {
       path: "/",
       component: () => import("../views/home/index.vue"),
       redirect: "/home",
@@ -41,6 +64,10 @@ const router = createRouter({
               path: ":id",
               component: () =>
                 import("../views/forum/components/viewForum.vue"),
+            },
+            {
+              path: "my",
+              component: () => import("../views/forum/my/index.vue"),
             },
           ],
         },
