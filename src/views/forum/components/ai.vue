@@ -48,7 +48,22 @@
         }}</span>
         <div class="aiMessage" v-if="item.role === 'assistant'">
           <img class="avatar" src="../../../assets/img/logo.png" />
-          <div class="message" v-html="md.render(item.content)"></div>
+          <div
+            v-if="isLoading && index === currentMessage.length - 1"
+            class="message"
+          >
+            <img
+              style="
+                padding: 0 10px;
+                width: 20px;
+                height: 20px;
+                transform: scale(3) translateY(2px);
+              "
+              src="../../../assets/loading.gif"
+              alt=""
+            />
+          </div>
+          <div v-else class="message" v-html="md.render(item.content)"></div>
         </div>
         <div v-else class="myMessage">
           <div class="message">{{ item.content }}</div>
@@ -134,7 +149,7 @@ import type {
 } from "@/types/home";
 import { Search } from "@element-plus/icons-vue";
 import dayjs from "dayjs";
-import { onMounted } from "vue";
+import { nextTick, onMounted } from "vue";
 import { ref, watch } from "vue";
 import SearchItem from "@/components/SearchItem.vue";
 import { getForumAIUrl } from "@/utils/baseUrl";
@@ -244,6 +259,54 @@ const createConversation = async (title: string, isInternet: boolean) => {
 
 const isLoading = ref(false);
 
+let arry: string[] = []; // 存储待渲染的字符串
+let isRendering = false; // 标记是否正在渲染
+
+function handleRender(newText: string) {
+  arry.push(newText); // 将新内容添加到队列
+
+  // 如果当前没有正在渲染的任务，则开始渲染
+  if (!isRendering) {
+    renderNext();
+  }
+}
+
+/**
+ * 逐步渲染队列中的文字内容
+ */
+function renderNext() {
+  if (arry.length === 0) {
+    isRendering = false; // 如果没有更多内容，停止渲染
+    return;
+  }
+
+  isRendering = true; // 标记为正在渲染
+
+  const currentText = arry.shift()!; // 取出队列中的第一段文字
+  const chars = Array.from(currentText); // 将字符串拆分为字符数组
+  let index = 0; // 当前渲染的字符索引
+  const interval = 50; // 渲染间隔时间（毫秒）
+  const step = 3; // 每次渲染的字符数
+
+  // 使用 setInterval 逐步渲染
+  const timer = setInterval(() => {
+    if (index >= chars.length) {
+      // 如果当前字符串渲染完成，清除定时器并处理下一段文字
+      clearInterval(timer);
+      renderNext(); // 递归调用，处理下一段文字
+      return;
+    }
+
+    // 每次渲染 step 个字符
+    const chunk = chars.slice(index, index + step).join("");
+    // console.log(chunk); // 这里可以替换为实际的 UI 更新逻辑
+    setTimeout(() => {
+      currentMessage.value[currentMessage.value.length - 1].content += chunk;
+    });
+    index += step; // 更新索引
+  }, interval);
+}
+
 const sendMessage = async () => {
   // 如果有当前会话
   if (currentConversition.value?.id) {
@@ -268,6 +331,8 @@ const sendMessage = async () => {
     metadata: {},
   });
 
+  isLoading.value = true;
+
   await fetchEventSource(
     getForumAIUrl(currentConversition.value!.id) +
       `?search_enabled=${isInternet.value}`,
@@ -282,35 +347,20 @@ const sendMessage = async () => {
         history: [],
       }),
       openWhenHidden: true,
-      async onopen() {
-        setTimeout(() => {
-          isLoading.value = true;
-        });
-      },
+      async onopen() {},
       onmessage(event) {
-        console.log("收到消息内容是:", JSON.parse(event.data));
-        let data = {};
-        try {
-          data = JSON.parse(event.data);
-        } catch (error) {
+        isLoading.value = false;
+
+        let data = JSON.parse(event.data);
+        if (data?.done) {
           return;
         }
 
         if (data?.content) {
           let decodeContent = decodeUnicode(data!.content);
-          // setTimeout(() => {
-          //   currentMessage.value[currentMessage.value.length - 1].content +=
-          //   decodeContent;
-          // });
-          const chars = decodeContent.split("");
+          console.log(decodeContent);
 
-          // const chars = data.content.split("");
-          chars.forEach((char: any, i: number) => {
-            setTimeout(() => {
-              currentMessage.value[currentMessage.value.length - 1].content +=
-                char;
-            }, i * 50); // 每个字符间隔50ms
-          });
+          handleRender(decodeContent);
         } else {
           setTimeout(() => {
             isLoading.value = false;
