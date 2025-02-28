@@ -107,7 +107,8 @@ const getDetails = async (id: number) => {
 };
 
 const setContent = () => {
-  if (route.params.id !== "undefined") {
+  
+  if (route.params?.id !== undefined) {
     console.log(route.params.id);
     getDetails(parseInt(route.params.id as string));
   }

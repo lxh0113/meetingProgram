@@ -108,3 +108,36 @@ export type Message = {
 };
 
 export type MessageList = Array<Message>;
+
+export type CurrentConversation={
+  id: number;
+  title: string;
+  search_enabled: boolean;
+}
+
+export type Conversation = {
+  id: number;
+  title: string;
+  updated_at: string;
+  search_enabled: boolean;
+};
+
+export type ConversationList = Array<Conversation>;
+
+export type SearchItem = {
+  title: string;
+  link: string;
+  snippet: string;
+};
+
+export type SearchItemList = Array<SearchItem>;
+
+export type AIMessage = {
+  id: number;
+  role: "user" | "assistant";
+  content: string;
+  created_at: string;
+  metadata: object;
+};
+
+export type AIMessageList = Array<AIMessage>;

@@ -92,7 +92,7 @@
       </el-form-item>
     </el-form>
     <span v-if="status === 2">您确定要开始快速会议吗</span>
-    <el-form v-if="status===3" :model="bookData" label-width="50px">
+    <el-form v-if="status === 3" :model="bookData" label-width="50px">
       <el-form-item label="主题">
         <el-input v-model="bookData.title" placeholder=""></el-input>
       </el-form-item>
@@ -108,7 +108,7 @@
           <el-option
             v-for="(item, index) in 4"
             :key="item"
-            :label="(index+1) * 15"
+            :label="(index + 1) * 15"
             :value="item"
           >
           </el-option>
@@ -144,14 +144,25 @@
         ></el-checkbox>
       </el-form-item>
       <el-form-item v-if="bookData.needPassword">
-        <el-input
-          v-model="bookData.password"
-          placeholder=""
-        ></el-input>
+        <el-input v-model="bookData.password" placeholder=""></el-input>
       </el-form-item>
-      <el-form-item label="文档">
-        <el-button type="primary" text="plain">添加参会文档</el-button>
-        <el-button type="primary" text="plain">AI生成参赛文档</el-button>
+      <el-form-item label="文档" >
+        <!-- <el-button type="primary" text="plain">AI生成参赛文档</el-button> -->
+        <el-upload
+          v-model:file-list="fileList"
+          class="upload-demo"
+          action="https://run.mocky.io/v3/9d059bf9-4660-45f2-925d-ce80ad6c4d15"
+          multiple
+          :on-preview="handlePreview"
+          :on-remove="handleRemove"
+          :before-remove="beforeRemove"
+          :limit="1"
+          :on-exceed="handleExceed"
+        >
+          <el-button type="primary">上传参会文档</el-button>
+          <!-- <div>AI生成参赛文档</div> -->
+          <el-button @click.stop="aiGenerate" type="primary" text="plain">AI生成参会文档</el-button>
+        </el-upload>
       </el-form-item>
       <el-form-item label="录制">
         <el-radio-group v-model="bookData.needRecord">
@@ -163,9 +174,7 @@
     <template #footer>
       <div class="dialog-footer">
         <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="dialogVisible = false">
-          确认
-        </el-button>
+        <el-button type="primary" @click="toConfirm"> 确认 </el-button>
       </div>
     </template>
   </el-dialog>
@@ -177,6 +186,13 @@ import Meeting from "../workBench/components/meeting.vue";
 import Schedule from "../workBench/components/schedule.vue";
 import { ref } from "vue";
 import Map from "../components/Map.vue";
+import { useRouter } from "vue-router";
+
+import { ElMessage, ElMessageBox } from "element-plus";
+
+import type { UploadProps, UploadUserFile } from "element-plus";
+
+const router = useRouter();
 
 // 1 加入会议 2 快速会议 3 预约会议
 const status = ref(1);
@@ -215,6 +231,60 @@ const bookData = ref({
   address: "",
   needRecord: false,
 });
+
+const toConfirm = () => {
+  switch (status.value) {
+    case 1:
+      router.push("/jisit");
+      break;
+    case 2:
+      router.push("/jisit");
+      break;
+    case 3:
+      break;
+  }
+
+  dialogVisible.value = false;
+};
+
+// 处理上传参会文档
+
+const fileList = ref<UploadUserFile[]>([
+  {
+    name: "参会文档示例",
+    url: "https://element-plus.org/images/element-plus-logo.svg",
+  },
+]);
+
+const handleRemove: UploadProps["onRemove"] = (file, uploadFiles) => {
+  console.log(file, uploadFiles);
+};
+
+const handlePreview: UploadProps["onPreview"] = (uploadFile) => {
+  console.log(uploadFile);
+};
+
+const handleExceed: UploadProps["onExceed"] = (files, uploadFiles) => {
+  ElMessage.warning(
+    `The limit is 3, you selected ${files.length} files this time, add up to ${
+      files.length + uploadFiles.length
+    } totally`
+  );
+};
+
+const beforeRemove: UploadProps["beforeRemove"] = (uploadFile, uploadFiles) => {
+  return ElMessageBox.confirm(
+    `Cancel the transfer of ${uploadFile.name} ?`
+  ).then(
+    () => true,
+    () => false
+  );
+};
+
+// ai 生成参会文档
+const aiGenerate=()=>{
+
+}
 </script>
 
 <style lang="scss" scoped>

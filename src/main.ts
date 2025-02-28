@@ -11,9 +11,12 @@ import "element-plus/dist/index.css";
 import zhCn from "element-plus/es/locale/lang/zh-cn";
 
 import * as ElementPlusIconsVue from '@element-plus/icons-vue'
+// import JitsiMeeting from '@jitsi/vue-sdk';
 
 // 引入mock文件
 // import './mock'
+
+// import { VuePlugin } from 'vue'
 
 const app = createApp(App);
 
@@ -26,12 +29,8 @@ for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
   app.component(key, component)
 }
 
-app.mount("#app");
+// app.use(VuePlugin)
 
-/**
- * 测试环境下 引入自定义的mockRequest
- * 因为mockRequest不是默认导出的：export default{}
- * 所以引入时需要加大括号，这种可以引入多个
- */
+app.mount("#app");
 
 
