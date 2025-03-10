@@ -142,3 +142,31 @@ export const favoriteCommentAPI = (
     },
   });
 };
+
+export const attentionPostAPI = (postId: number, userId: number) => {
+  return http({
+    url: "/forum/" + postId + "/attention",
+    method: "POST",
+    params: {
+      userId,
+    },
+  });
+};
+
+export const getRankingAPI = () => {
+  return http({
+    url: "/forum/ranking",
+    method: "GET",
+  });
+};
+
+export const searchForumAPI = (content: string, currentPage: number) => {
+  return http({
+    url: "/forum/find",
+    method: "GET",
+    params: {
+      content,
+      currentPage,
+    },
+  });
+};

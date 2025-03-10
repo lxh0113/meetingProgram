@@ -26,8 +26,14 @@
           </div>
           <div class="button">
             <!-- <el-button type="primary" :icon="Plus">关注</el-button> -->
-            <el-button type="success" :icon="Edit" @click="reply"
+            <el-button text="primary" plain :icon="Edit" @click="reply"
               >回帖</el-button
+            >
+            <el-button
+              :type="activeData.isAttention ? 'plain' : 'danger'"
+              :icon="Plus"
+              @click="toAttention"
+              >{{ activeData.isAttention ? "取消关注" : "关注" }}</el-button
             >
           </div>
         </div>
@@ -94,9 +100,10 @@
 import { Edit, Plus } from "@element-plus/icons-vue";
 import ForumRecommend from "./forumRecommend.vue";
 import ForumReply from "./forumReply.vue";
-import { Comment, onMounted, ref } from "vue";
+import { onMounted, ref } from "vue";
 import { useRoute } from "vue-router";
 import {
+  attentionPostAPI,
   commentByCommentIdAPI,
   commentPostAPI,
   favoritePostAPI,
@@ -104,12 +111,10 @@ import {
   getPostByIdAPI,
   likePostAPI,
 } from "@/apis/forum";
-import type { Post, ReplyPost, ViewPost } from "@/types/home";
+import type { ReplyPost, ViewPost } from "@/types/home";
 import { dayjs, ElMessage } from "element-plus";
 import { useUserStore } from "@/stores/userStore";
-import { ElMessageBox } from "element-plus";
 import myEditor from "./myEditor.vue";
-import { time } from "echarts";
 
 const route = useRoute();
 const userStore = useUserStore();
@@ -119,6 +124,7 @@ const activeData = ref({
   isView: 1,
   isLike: 0,
   isStar: 0,
+  isAttention: 1,
 });
 
 const actionData = ref([
@@ -239,8 +245,26 @@ const getAction = async () => {
   if (res.data.code === 200) {
     activeData.value.isLike = res.data.data.userActionVo.isLike;
     activeData.value.isStar = res.data.data.userActionVo.isFavorite;
+    activeData.value.isAttention = res.data.data.isAttention;
     actionData.value = res.data.data.commentsActionVoArray;
   } else ElMessage.error(res.data.message);
+};
+
+// 关注取消关注
+const toAttention = async () => {
+  const res = await attentionPostAPI(postData.value!.id, userStore.user!.id);
+
+  if (res.data.code === 200) {
+    if (activeData.value.isAttention === 0) {
+      activeData.value.isAttention = 1;
+    } else {
+      activeData.value.isAttention = 0;
+    }
+
+    ElMessage.success(res.data.message);
+  } else {
+    ElMessage.error(res.data.message);
+  }
 };
 
 onMounted(() => {

@@ -46,4 +46,13 @@ export default defineConfig({
       "@": fileURLToPath(new URL("./src", import.meta.url)),
     },
   },
+  server: {
+    proxy: {
+      '/open/api/v2': {
+        target: 'https://www.das-ai.com', // 后端服务器地址
+        changeOrigin: true, // 允许跨域
+        rewrite: path => path.replace(/^\/open\/api\/v2/, '')
+      }
+    }
+  }
 });

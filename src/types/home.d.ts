@@ -81,6 +81,17 @@ interface ViewPost extends Post {
   totalComments: number;
 }
 
+export type AdminPost = {
+  id: number;
+  label:string;
+  views: number;
+  likes: number;
+  favorites: number;
+  comments: number;
+  avatar: string;
+  author: string;
+};
+
 export type ReplyComment = {
   userId: number;
   time: string;
@@ -109,11 +120,11 @@ export type Message = {
 
 export type MessageList = Array<Message>;
 
-export type CurrentConversation={
+export type CurrentConversation = {
   id: number;
   title: string;
   search_enabled: boolean;
-}
+};
 
 export type Conversation = {
   id: number;
@@ -141,3 +152,18 @@ export type AIMessage = {
 };
 
 export type AIMessageList = Array<AIMessage>;
+
+export type MeetingSettings = {
+  id?: number;
+  username?: string;
+  // 关闭音频
+  startWithAudioMuted?: boolean;
+  startWithVideoMuted?: boolean;
+};
+
+export type RankPost = {
+  postId: number;
+  lable: string;
+  attentionCount: number;
+  userInfo: UserInfo;
+};

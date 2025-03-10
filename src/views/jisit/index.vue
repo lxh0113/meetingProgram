@@ -144,8 +144,9 @@
 <script lang="ts" setup>
 import { applyReactInVue } from "veaury";
 import myReactComponent from "./jisit.tsx"; // 注意组件命名规范
-import { ref } from "vue";
+import { ref,onMounted } from "vue";
 import type { UploadProps, UploadUserFile } from "element-plus";
+import { agentExecuteAPI } from "@/apis/ai/ai.ts";
 
 const isRecord = ref(false);
 const dialogVisible = ref(false);
@@ -186,6 +187,14 @@ const handlePreview: UploadProps["onPreview"] = (file) => {
 const aiGenerate = () => {};
 
 const MyReactComponent = applyReactInVue(myReactComponent);
+
+const start=()=>{
+  agentExecuteAPI()
+}
+
+onMounted(()=>{
+  start()
+})
 </script>
 
 <style lang="scss" scoped>

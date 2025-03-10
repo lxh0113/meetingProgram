@@ -1,6 +1,6 @@
 <template>
   <div class="myCardBox" @click="toForum">
-    <span class="title">{{ props.data.label }}</span>
+    <span class="title" v-html="props.data.label"></span>
     <el-text
       class="content"
       line-clamp="5"
@@ -66,6 +66,7 @@ const star = async () => {
 </script>
 
 <style lang="scss" scoped>
+
 .myCardBox {
   display: flex;
   flex-direction: column;

@@ -52,13 +52,25 @@
         </div>
       </div>
       <div class="right">
-        <!-- echart 表示时间活跃数量 -->
         <span class="title">各时间使用人数</span>
         <div id="timePic" style="width: 100%; height: 100%"></div>
       </div>
     </div>
     <div class="bottom">
-      <el-table :data="tableData" style="width: 100%">
+      <el-input
+        v-model="serachText"
+        placeholder="请输入用户名"
+        :prefix-icon="Search"
+        style="width: 300px"
+        @keyup.enter="getUsers"
+      ></el-input>
+      <div
+        v-if="tableData.length === 0"
+        style="display: flex; justify-content: center"
+      >
+        <el-empty description="无数据" />
+      </div>
+      <el-table v-else :data="tableData" style="width: 100%">
         <el-table-column prop="account" label="账户" />
         <el-table-column prop="username" label="名称" />
         <el-table-column label="头像">
@@ -71,48 +83,45 @@
         <el-table-column prop="phone" label="电话" />
         <el-table-column label="操作" width="180">
           <template #default="scope">
-            <el-button type="danger">删除</el-button>
+            <el-button type="danger" @click="deleteUser(scope.row.account)"
+              >冻结</el-button
+            >
           </template>
         </el-table-column>
       </el-table>
+
+      <div
+        v-if="tableData.length"
+        style="display: flex; justify-content: center;margin-top: 20px;"
+      >
+        <el-pagination
+          background
+          layout="prev, pager, next"
+          @current-change="getUsers"
+          :page-size="pageData.pageSize"
+          :current-page="pageData.currentPage"
+          :total="pageData.total"
+        />
+      </div>
     </div>
   </div>
 </template>
 
 <script lang="ts" setup>
+import { adminDeleteUsersAPI, adminGetUsersAPI } from "@/apis/admin";
 import type { User } from "@/types/home";
+import { Search } from "@element-plus/icons-vue";
 import * as echarts from "echarts";
+import { ElMessage } from "element-plus";
 import { onMounted, ref } from "vue";
 
-const tableData = ref<Array<User>>([
-  {
-    id: 1,
-    account: "12",
-    avatar: "user",
-    email: "121",
-    phone: "212",
-    sex: "男",
-    username: "11",
-  },
-  {
-    id: 1,
-    account: "12",
-    avatar: "user",
-    email: "121",
-    phone: "212",
-    sex: "男",
-    username: "11",
-  },
-  {
-    id: 1,
-    account: "12",
-    avatar: "user",
-    email: "121",
-    phone: "212",
-    sex: "男",
-    username: "11",
-  },
-]);
+const tableData = ref<Array<User>>([]);
+const serachText = ref("");
+const pageData = ref({
+  currentPage: 1,
+  total: 1,
+  pageSize: 8,
+});
 
 const initPic = () => {
   var myChart = echarts.init(document.getElementById("timePic"));
@@ -157,8 +166,33 @@ const initPic = () => {
   });
 };
 
+const getUsers = async () => {
+  const res = await adminGetUsersAPI(
+    serachText.value,
+    pageData.value.currentPage
+  );
+
+  if (res.data.code === 200) {
+    tableData.value = res.data.data.users;
+    pageData.value.total = res.data.data.totalUsers;
+  } else {
+    ElMessage.error(res.data.message);
+  }
+};
+
+const deleteUser = async (account: string) => {
+  const res = await adminDeleteUsersAPI(account);
+  if (res.data.code === 200) {
+    ElMessage.success('冻结用户成功')
+    getUsers();
+  } else {
+    ElMessage.error(res.data.message);
+  }
+};
+
 onMounted(() => {
   initPic();
+  getUsers();
 });
 </script>
 
@@ -184,7 +218,7 @@ onMounted(() => {
         border-radius: 20px;
         border: 1px solid $primary-border-color;
         justify-content: space-between;
-        transition: all .5s;
+        transition: all 0.5s;
 
         &:hover {
           transform: translateY(-4px);
@@ -217,14 +251,14 @@ onMounted(() => {
       width: 600px;
       box-sizing: border-box;
       padding: 20px;
-      transition: all .5s;
+      transition: all 0.5s;
 
-        &:hover {
-          transform: translateY(-4px);
-          box-shadow: rgba(17, 17, 26, 0.1) 0px 4px 16px,
-            rgba(17, 17, 26, 0.1) 0px 8px 24px,
-            rgba(17, 17, 26, 0.1) 0px 16px 56px;
-        }
+      &:hover {
+        transform: translateY(-4px);
+        box-shadow: rgba(17, 17, 26, 0.1) 0px 4px 16px,
+          rgba(17, 17, 26, 0.1) 0px 8px 24px,
+          rgba(17, 17, 26, 0.1) 0px 16px 56px;
+      }
 
       .title {
         font-weight: bold;
@@ -234,7 +268,7 @@ onMounted(() => {
   }
 
   .bottom {
-    margin-top: 40px;
+    margin-top: 20px;
   }
 }
 </style>

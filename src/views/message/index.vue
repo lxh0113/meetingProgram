@@ -1,7 +1,11 @@
 <template>
   <div class="messageBox">
     <div class="left">
-      <span class="title"> 消息列表 </span>
+      <span class="title">
+        <span>消息列表</span>
+        <!-- <el-button @click="prepare(1, 1)" style="margin-left: 20px;" type="success" :icon="Plus">添加代办事项</el-button> -->
+      </span>
+
       <div class="message" v-for="item in messageList">
         <div class="avatar">
           <el-avatar :size="50">{{ item.title }}</el-avatar>
@@ -151,6 +155,7 @@ import {
 } from "@/apis/message";
 import { useUserStore } from "@/stores/userStore";
 import type { MessageList } from "@/types/home";
+import { Plus } from "@element-plus/icons-vue";
 import { dayjs, ElMessage } from "element-plus";
 import { onMounted, ref } from "vue";
 

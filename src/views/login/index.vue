@@ -74,6 +74,7 @@ import { ref, reactive } from "vue";
 import type { FormRules } from "element-plus";
 import { useRouter } from "vue-router";
 import { useUserStore } from "@/stores/userStore";
+import { adminLoginAPI } from "@/apis/admin";
 
 const userStore = useUserStore();
 
@@ -103,23 +104,36 @@ const rules = reactive<FormRules<RuleForm>>({
 const router = useRouter();
 
 const login = async () => {
-  const res = await loginAPI(loginData.value.account, loginData.value.password);
-  console.log(res.data);
+  if (remember.value === true) {
+    //  是否管理员
+    const res = await adminLoginAPI(
+      loginData.value.account,
+      loginData.value.password
+    );
+    console.log(res.data);
 
-  if (res.data.code === 200) {
-    ElMessage.success("登陆成功");
-    userStore.setUserInfo(res.data.data);
-    console.log(remember.value);
-    if (remember.value === true) {
+    if (res.data.code === 200) {
+      ElMessage.success("登陆成功");
+      userStore.setUserInfo(res.data.data);
       setTimeout(() => {
         router.push("/back");
       });
     } else {
-      setTimeout(() => {
-        router.push("/");
-      }, 200);
+      const res = await loginAPI(
+        loginData.value.account,
+        loginData.value.password
+      );
+      console.log(res.data);
+
+      if (res.data.code === 200) {
+        ElMessage.success("登陆成功");
+        userStore.setUserInfo(res.data.data);
+        setTimeout(() => {
+          router.push("/");
+        }, 200);
+      } else ElMessage.error("登录失败");
     }
-  } else ElMessage.error("登录失败");
+  }
 };
 </script>
 

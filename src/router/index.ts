@@ -12,8 +12,12 @@ const router = createRouter({
       component: () => import("../views/register/index.vue"),
     },
     {
-      path:"/jisit",
+      path:"/jisit/:id",
       component:()=>import("../views/jisit/index.vue")
+    },
+    {
+      path:"/map",
+      component:()=>import("../views/components/Map.vue")
     },
     {
       path: "/back",
@@ -59,6 +63,9 @@ const router = createRouter({
               component: () =>
                 import("../views/forum/components/publishForum.vue"),
             },
+            {
+              path: "rank",
+              component: () => import("../views/forum/components/Rank.vue") },
             {
               path: "publish/:id",
               component: () =>

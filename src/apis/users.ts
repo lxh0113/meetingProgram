@@ -20,12 +20,12 @@ export const getUserInfoAPI = (account: string) => {
   });
 };
 
-export const updateAPI = (emailCaptcha:string|null,data: UpdateUser) => {
+export const updateAPI = (emailCaptcha: string | null, data: UpdateUser) => {
   return http({
     url: "/users/update",
     method: "PUT",
-    params:{
-      emailCaptcha
+    params: {
+      emailCaptcha,
     },
     data,
   });
@@ -89,3 +89,16 @@ export const getFavorateAPI = (userId: number, page: number) => {
     },
   });
 };
+
+export const getUserFollowAPI = (userId: number, page: number) => {
+  return http({
+    url: "/users/attention",
+    method: "GET",
+    params: {
+      userId,
+      page,
+    },
+  });
+};
+
+

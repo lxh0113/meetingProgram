@@ -67,25 +67,22 @@
       v-if="status === 1"
     >
       <el-form-item label="会议编号">
-        <el-input
-          v-model="addFormData.number"
-          placeholder="请输入编号"
-        ></el-input>
+        <el-input v-model="addFormData.id" placeholder="请输入编号"></el-input>
       </el-form-item>
       <el-form-item label="入会名称">
         <el-input
-          v-model="addFormData.name"
+          v-model="addFormData.username"
           placeholder="请输入昵称"
         ></el-input>
       </el-form-item>
       <el-form-item label="会议设置">
         <el-checkbox
-          v-model="addFormData.audio"
+          v-model="addFormData.startWithAudioMuted"
           label="开启麦克风"
           size="large"
         />
         <el-checkbox
-          v-model="addFormData.video"
+          v-model="addFormData.startWithVideoMuted"
           label="开启摄像头"
           size="large"
         />
@@ -100,13 +97,13 @@
         <el-date-picker
           v-model="bookData.creatTime"
           type="datetime"
-          placeholder="datetime"
+          placeholder="请选择具体时间"
         ></el-date-picker>
       </el-form-item>
       <el-form-item label="时长">
         <el-select v-model="bookData.time" placeholder="">
           <el-option
-            v-for="(item, index) in 4"
+            v-for="(item, index) in 6"
             :key="item"
             :label="(index + 1) * 15"
             :value="item"
@@ -128,7 +125,7 @@
       </el-form-item>
 
       <el-form-item v-if="bookData.needAddress" label="地址">
-        <Map></Map>
+        <Map @change="getAddress"></Map>
       </el-form-item>
 
       <el-form-item label="隐私">
@@ -146,7 +143,7 @@
       <el-form-item v-if="bookData.needPassword">
         <el-input v-model="bookData.password" placeholder=""></el-input>
       </el-form-item>
-      <el-form-item label="文档" >
+      <el-form-item label="文档">
         <!-- <el-button type="primary" text="plain">AI生成参赛文档</el-button> -->
         <el-upload
           v-model:file-list="fileList"
@@ -161,7 +158,9 @@
         >
           <el-button type="primary">上传参会文档</el-button>
           <!-- <div>AI生成参赛文档</div> -->
-          <el-button @click.stop="aiGenerate" type="primary" text="plain">AI生成参会文档</el-button>
+          <el-button @click.stop="aiGenerate" type="primary" text="plain"
+            >AI生成参会文档</el-button
+          >
         </el-upload>
       </el-form-item>
       <el-form-item label="录制">
@@ -191,6 +190,8 @@ import { useRouter } from "vue-router";
 import { ElMessage, ElMessageBox } from "element-plus";
 
 import type { UploadProps, UploadUserFile } from "element-plus";
+import type { MeetingSettings } from "@/types/home";
+import { useMeetingStore } from "@/stores/meetingStore";
 
 const router = useRouter();
 
@@ -211,12 +212,12 @@ const toOpenDialog = (i: number) => {
   dialogVisible.value = true;
 };
 
-const form = ref();
-const addFormData = ref({
-  number: "",
-  name: "",
-  audio: false,
-  video: false,
+// const form = ref();
+const addFormData = ref<MeetingSettings>({
+  id: 1,
+  username: "",
+  startWithAudioMuted: true,
+  startWithVideoMuted: false,
 });
 
 const bookData = ref({
@@ -232,13 +233,23 @@ const bookData = ref({
   needRecord: false,
 });
 
+const meetingStore = useMeetingStore();
+
 const toConfirm = () => {
   switch (status.value) {
     case 1:
-      router.push("/jisit");
+      {
+        console.log(addFormData.value)
+        meetingStore.setMeetingSetting(addFormData.value);
+        router.push("/jisit/" + addFormData.value.id);
+      }
       break;
     case 2:
-      router.push("/jisit");
+      {
+        // 创建会议
+
+        router.push("/jisit/1");
+      }
       break;
     case 3:
       break;
@@ -282,9 +293,11 @@ const beforeRemove: UploadProps["beforeRemove"] = (uploadFile, uploadFiles) => {
 };
 
 // ai 生成参会文档
-const aiGenerate=()=>{
+const aiGenerate = () => {};
 
-}
+const getAddress = (item: any) => {
+  console.log(item);
+};
 </script>
 
 <style lang="scss" scoped>

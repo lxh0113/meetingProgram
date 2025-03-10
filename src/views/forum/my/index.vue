@@ -61,6 +61,23 @@
           />
         </div>
       </el-tab-pane>
+      <el-tab-pane label="我的关注" name="forth">
+        <div class="forums">
+          <ForumCard v-for="item in myStarPostData" :data="item" />
+        </div>
+        <div style="display: flex; justify-content: center">
+          <el-empty v-if="myStarPostData.length === 0" description="无数据" />
+        </div>
+        <div style="margin-top: 20px; display: flex; justify-content: center">
+          <el-pagination
+            background
+            layout="prev, pager, next"
+            :page-size="myStarPostPageData.pageSize"
+            :total="myStarPostPageData.totalPosts"
+            :current-change="getMyStar"
+          />
+        </div>
+      </el-tab-pane>
     </el-tabs>
   </div>
 </template>
@@ -70,7 +87,12 @@ import { onMounted, ref, watch } from "vue";
 import { ElMessage, type TabsPaneContext } from "element-plus";
 import ForumCard from "../components/forumCard.vue";
 import MyForumItem from "./components/myForumItem.vue";
-import { getFavorateAPI, getLikeAPI, getPostAPI } from "@/apis/users";
+import {
+  getFavorateAPI,
+  getLikeAPI,
+  getPostAPI,
+  getUserFollowAPI,
+} from "@/apis/users";
 import { useUserStore } from "@/stores/userStore";
 import type { Post } from "@/types/home";
 
@@ -86,8 +108,10 @@ watch(activeName, (old, newValue) => {
     getMyLike();
   } else if (newValue === "first") {
     getMyPost();
-  } else {
+  } else if(newValue==='third') {
     getMyStar();
+  }else {
+    getMyFollow()
   }
 });
 
@@ -106,6 +130,12 @@ const myLikePostPageData = ref({
 });
 const myStarPostData = ref<Array<Post>>([]);
 const myStarPostPageData = ref({
+  totalPosts: 1,
+  pageSize: 5,
+  currentPage: 1,
+});
+const myFollowPostData = ref<Array<Post>>([]);
+const myFollowPostPageData = ref({
   totalPosts: 1,
   pageSize: 5,
   currentPage: 1,
@@ -130,6 +160,7 @@ const getMyLike = async () => {
 
   if (res.data.code === 200) {
     myLikePostData.value = res.data.data.posts;
+    myLikePostPageData.value.totalPosts=res.data.data.totalPosts
   } else ElMessage.error("获取出错");
 };
 
@@ -141,7 +172,23 @@ const getMyStar = async () => {
 
   if (res.data.code === 200) {
     myStarPostData.value = res.data.data.posts;
+    myStarPostPageData.value=res.data.data.totalPosts
   } else ElMessage.error("获取出错");
+};
+
+const getMyFollow =async () => {
+  const res = await getUserFollowAPI(
+    userStore.user!.id,
+    myFollowPostPageData.value.currentPage
+  );
+
+  if(res.data.code===200){
+    myFollowPostData.value=res.data.data.posts
+    myFollowPostPageData.value.totalPosts=res.data.data.totalPages
+  }
+  else {
+    ElMessage.error(res.data.message)
+  }
 };
 
 onMounted(() => {

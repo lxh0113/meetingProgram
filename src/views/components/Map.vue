@@ -19,7 +19,10 @@
         :key="item.id"
         @click="clickItem(item)"
       >
-        {{ item.name }}
+        <div class="title">
+          {{ item.name }}
+        </div>
+        <div class="address">({{ item.adname }}) {{ item.address }}</div>
       </div>
     </div>
   </div>
@@ -44,10 +47,6 @@ let placeSearch;
 let map;
 
 const addressList = ref([]);
-
-onMounted(() => {
-  initMap();
-});
 
 function initMap() {
   window._AMapSecurityConfig = {
@@ -102,7 +101,7 @@ const searchLocation = () => {
         map.setZoom(15); //缩放级别
 
         addressList.value = result.poiList.pois;
-        console.log(addressList.value)
+        console.log(addressList.value);
       } else {
         ElMessage.error("未找到相关地点！");
       }
@@ -113,7 +112,14 @@ const searchLocation = () => {
 };
 
 const clickItem = (item) => {
-  // 向父组件传值
+
+  console.log(item);
+  map.setCenter([item.location.lng, item.location.lat]);
+  map.setZoom(18); //缩放级别
+
+  addressList.value = [];
+
+  // 向父组件传值;
   $emit("change", {
     address: item.name,
     lat: item.location.lat,
@@ -121,12 +127,16 @@ const clickItem = (item) => {
   });
 };
 
+onMounted(() => {
+  initMap();
+});
+
 onUnmounted(() => {
   map?.destroy();
 });
 </script>
 
-<style lang="scss" scoped>
+<style lang="scss">
 .box {
   position: relative;
 }
@@ -136,6 +146,7 @@ onUnmounted(() => {
   line-height: 40px;
   font-size: 14px;
   padding-left: 10px;
+  z-index: 100;
 }
 
 .list {
@@ -144,20 +155,32 @@ onUnmounted(() => {
   top: 40px;
   left: 0;
   width: 400px;
-  max-height: 300px;
+  max-height: 500px;
   overflow-y: auto;
   background-color: #fff;
 }
 
 .list_item {
   box-sizing: border-box;
-  line-height: 50px;
   overflow: hidden;
   white-space: nowrap;
   cursor: pointer;
   text-overflow: ellipsis;
-  border:1px solid #eee;
+  border: 1px solid #eee;
   padding-left: 10px;
+  display: flex;
+  flex-direction: column;
+
+  .title {
+    font-weight: bold;
+    line-height: 30px;
+  }
+
+  .address {
+    color: $primary-gray-text-color;
+    font-size: 14px;
+    line-height: 20px;
+  }
 }
 
 .gdmap_container {

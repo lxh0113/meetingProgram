@@ -53,9 +53,10 @@
       </div>
     </div>
     <div class="bottom">
+      <el-button type="primary" :icon="View" @click="getRank">查看排行榜</el-button>
       <el-table :data="tableData" style="width: 100%">
         <el-table-column prop="id" label="id" />
-        <el-table-column prop="username" label="名称" />
+        <el-table-column prop="label" label="名称" />
         <el-table-column label="头像">
           <template #default="scope">
             <el-avatar :src="scope.row.avatar">user</el-avatar>
@@ -72,27 +73,63 @@
           </template>
         </el-table-column>
       </el-table>
+
+      <div
+        v-if="tableData.length"
+        style="display: flex; justify-content: center;margin-top: 20px;"
+      >
+        <el-pagination
+          background
+          layout="prev, pager, next"
+          @current-change="getPost"
+          :page-size="pageData.pageSize"
+          :current-page="pageData.currentPage"
+          :total="pageData.total"
+        />
+      </div>
     </div>
   </div>
 </template>
 
 <script lang="ts" setup>
+import { adminGetAllPostAPI } from "@/apis/admin";
+import { getRankingAPI } from "@/apis/forum";
+import type { AdminPost } from "@/types/home";
+import { View } from "@element-plus/icons-vue";
+import { ElMessage } from "element-plus";
 import { onMounted, ref } from "vue";
+import { useRouter } from "vue-router";
 
-const tableData = ref([
-  {
-    id: 1,
-    title: "12",
-    username: "12",
-    avatar: "",
-    views: 12,
-    likes: 123,
-    star: 123,
-    replyNumber: 123,
-  },
-]);
+const tableData = ref<Array<AdminPost>>([]);
 
-onMounted(() => {});
+const router=useRouter()
+
+// 排行榜
+const getRank=async()=>{
+  router.push('/back/forum/rank')
+}
+
+const pageData=ref({
+  currentPage:1,
+  total:1,
+  pageSize:8
+})
+
+const getPost=async()=>{
+  const res = await adminGetAllPostAPI(pageData.value.currentPage)
+
+  if(res.data.code===200){
+    tableData.value=res.data.data.postList
+    pageData.value.total=res.data.data.totalPages
+  }
+  else {
+    ElMessage.error(res.data.message)
+  }
+}
+
+onMounted(() => {
+  getPost()
+});
 </script>
 
 <style lang="scss" scoped>
@@ -195,7 +232,7 @@ onMounted(() => {});
   }
 
   .bottom {
-    margin-top: 40px;
+    margin-top: 20px;
   }
 }
 </style>
