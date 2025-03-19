@@ -48,11 +48,9 @@ export default defineConfig({
   },
   server: {
     proxy: {
-      '/open/api/v2': {
-        target: 'https://www.das-ai.com', // 后端服务器地址
-        changeOrigin: true, // 允许跨域
-        rewrite: path => path.replace(/^\/open\/api\/v2/, '')
-      }
-    }
-  }
+      // 字符串简写写法：http://localhost:5173/oauth -> https://aip.baidubce.com/oauth
+      "/open/api/v2": "https://www.das-ai.com",
+      "/dasChat": "https://www.das-ai.com/dasChat"
+    },
+  },
 });

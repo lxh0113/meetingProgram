@@ -14,33 +14,32 @@
             :data="item"
           />
         </div>
-        <div style="display: flex; justify-content: center">
-          <el-empty v-if="myPostData.length === 0" description="无数据" />
-        </div>
         <div style="margin-top: 20px; display: flex; justify-content: center">
+          <el-empty v-if="myPostData.length === 0" description="无数据" />
           <el-pagination
-            background
+            v-else
             layout="prev, pager, next"
             :page-size="myPostPageData.pageSize"
             :total="myPostPageData.totalPosts"
-            :current-change="getMyPost"
+            :current-page="myPostPageData.currentPage"
+            @current-change="getMyPost"
           />
         </div>
+        
       </el-tab-pane>
       <el-tab-pane label="我的点赞" name="second">
         <div class="forums">
           <ForumCard v-for="item in myLikePostData" :data="item" />
         </div>
-        <div style="display: flex; justify-content: center">
-          <el-empty v-if="myLikePostData.length === 0" description="无数据" />
-        </div>
         <div style="margin-top: 20px; display: flex; justify-content: center">
+          <el-empty v-if="myLikePostData.length === 0" description="无数据" />
           <el-pagination
-            background
+            v-else
             layout="prev, pager, next"
             :page-size="myLikePostPageData.pageSize"
+            :current-page="myLikePostPageData.currentPage"
             :total="myLikePostPageData.totalPosts"
-            :current-change="getMyLike"
+            @current-change="getMyLike"
           />
         </div>
       </el-tab-pane>
@@ -48,16 +47,15 @@
         <div class="forums">
           <ForumCard v-for="item in myStarPostData" :data="item" />
         </div>
-        <div style="display: flex; justify-content: center">
-          <el-empty v-if="myStarPostData.length === 0" description="无数据" />
-        </div>
         <div style="margin-top: 20px; display: flex; justify-content: center">
+          <el-empty v-if="myStarPostData.length === 0" description="无数据" />
           <el-pagination
-            background
+            v-else
             layout="prev, pager, next"
             :page-size="myStarPostPageData.pageSize"
             :total="myStarPostPageData.totalPosts"
-            :current-change="getMyStar"
+            :current-page="myStarPostPageData.currentPage"
+            @current-change="getMyStar"
           />
         </div>
       </el-tab-pane>
@@ -65,16 +63,14 @@
         <div class="forums">
           <ForumCard v-for="item in myStarPostData" :data="item" />
         </div>
-        <div style="display: flex; justify-content: center">
-          <el-empty v-if="myStarPostData.length === 0" description="无数据" />
-        </div>
         <div style="margin-top: 20px; display: flex; justify-content: center">
+          <el-empty v-if="myStarPostData.length === 0" description="无数据" />
           <el-pagination
-            background
+            v-else
             layout="prev, pager, next"
             :page-size="myStarPostPageData.pageSize"
             :total="myStarPostPageData.totalPosts"
-            :current-change="getMyStar"
+            @current-change="getMyStar"
           />
         </div>
       </el-tab-pane>
@@ -108,10 +104,10 @@ watch(activeName, (old, newValue) => {
     getMyLike();
   } else if (newValue === "first") {
     getMyPost();
-  } else if(newValue==='third') {
+  } else if (newValue === "third") {
     getMyStar();
-  }else {
-    getMyFollow()
+  } else {
+    getMyFollow();
   }
 });
 
@@ -160,7 +156,7 @@ const getMyLike = async () => {
 
   if (res.data.code === 200) {
     myLikePostData.value = res.data.data.posts;
-    myLikePostPageData.value.totalPosts=res.data.data.totalPosts
+    myLikePostPageData.value.totalPosts = res.data.data.totalPosts;
   } else ElMessage.error("获取出错");
 };
 
@@ -172,22 +168,21 @@ const getMyStar = async () => {
 
   if (res.data.code === 200) {
     myStarPostData.value = res.data.data.posts;
-    myStarPostPageData.value=res.data.data.totalPosts
+    myStarPostPageData.value = res.data.data.totalPosts;
   } else ElMessage.error("获取出错");
 };
 
-const getMyFollow =async () => {
+const getMyFollow = async () => {
   const res = await getUserFollowAPI(
     userStore.user!.id,
     myFollowPostPageData.value.currentPage
   );
 
-  if(res.data.code===200){
-    myFollowPostData.value=res.data.data.posts
-    myFollowPostPageData.value.totalPosts=res.data.data.totalPages
-  }
-  else {
-    ElMessage.error(res.data.message)
+  if (res.data.code === 200) {
+    myFollowPostData.value = res.data.data.posts;
+    myFollowPostPageData.value.totalPosts = res.data.data.totalPages;
+  } else {
+    ElMessage.error(res.data.message);
   }
 };
 

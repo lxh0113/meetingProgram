@@ -42,12 +42,76 @@ export const adminGetAllPostAPI = (page: number) => {
   });
 };
 
-export const adminUpdatePostStatusAPI=(postId:number)=>{
-    return http({
-        url:"/amdin/forum/status",
-        method:"POST",
-        params:{
-            postId
-        }
-    })
-}
+export const adminUpdatePostStatusAPI = (postId: number, status: number) => {
+  return http({
+    url: "/amdin/forum/status",
+    method: "POST",
+    params: {
+      postId,
+      status,
+    },
+  });
+};
+
+export const adminAddBadWordsAPI = (word: string) => {
+  return http({
+    url: "/amdin/sensitive",
+    method: "POST",
+    params: {
+      word,
+    },
+  });
+};
+
+export const adminDeleteBadWordsAPI = (id: number) => {
+  return http({
+    url: "/amdin/sensitive/delete",
+    method: "DELETE",
+    params: {
+      id,
+    },
+  });
+};
+
+export const adminGetBadWordsAPI = () => {
+  return http({
+    url: "/amdin/sensitive/getall",
+    method: "GET",
+  });
+};
+
+export const adminFindBadWordsAPI = (word: string) => {
+  return http({
+    url: "/amdin/sensitive/search",
+    method: "GET",
+    params: {
+      word,
+    },
+  });
+};
+
+export const adminGetMeetingsAPI = (page: number) => {
+  return http({
+    url: "/amdin/meeting",
+    method: "GET",
+    params: {
+      page,
+    },
+  });
+};
+
+export const adminFindMeetingsAPI = (
+  title: string,
+  page: number,
+  status: number|null
+) => {
+  return http({
+    url: "/amdin/meeting/find",
+    method: "GET",
+    params: {
+      title,
+      page,
+      status,
+    },
+  });
+};

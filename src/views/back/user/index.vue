@@ -97,7 +97,7 @@
         <el-pagination
           background
           layout="prev, pager, next"
-          @current-change="getUsers"
+          :current-change="getUsers"
           :page-size="pageData.pageSize"
           :current-page="pageData.currentPage"
           :total="pageData.total"

@@ -95,52 +95,73 @@
       </el-form-item>
       <el-form-item label="开始">
         <el-date-picker
-          v-model="bookData.creatTime"
+          v-model="bookData.startTime"
           type="datetime"
+          value-format="YYYY-MM-DD hh:mm:ss"
           placeholder="请选择具体时间"
         ></el-date-picker>
       </el-form-item>
       <el-form-item label="时长">
-        <el-select v-model="bookData.time" placeholder="">
+        <el-select v-model="bookData.duration" placeholder="">
           <el-option
-            v-for="(item, index) in 6"
+            v-for="(item, index) in 9"
             :key="item"
             :label="(index + 1) * 15"
-            :value="item"
+            :value="(index + 1) * 15"
           >
           </el-option>
         </el-select>
       </el-form-item>
-      <el-form-item label="代办">
-        <el-checkbox
-          label="添加到代办事项"
-          v-model="bookData.isBook"
-        ></el-checkbox>
+      <el-form-item label="提醒">
+        <el-checkbox label="是否需要参会提醒" v-model="isRemind"></el-checkbox>
       </el-form-item>
+
+      <el-form-item v-if="isRemind">
+        <el-upload
+          v-model:file-list="fileList"
+          class="upload-demo"
+          action="https://run.mocky.io/v3/9d059bf9-4660-45f2-925d-ce80ad6c4d15"
+          multiple
+          :on-preview="handlePreview"
+          :on-remove="handleRemove"
+          :before-remove="beforeRemove"
+          :limit="3"
+          :on-exceed="handleExceed"
+        >
+          <el-button type="primary">上传参会人员</el-button>
+          <div @click.stop="">
+            <span style="margin: 0px 20px">提醒方式：</span>
+            <el-radio-group v-model="remindType">
+              <el-radio label="邮箱" value="邮箱"></el-radio>
+              <el-radio label="短信" value="短信"></el-radio>
+            </el-radio-group>
+          </div>
+        </el-upload>
+      </el-form-item>
+
+      <el-form-item v-if="isRemind" label="类型"> </el-form-item>
+
       <el-form-item label="方式">
-        <el-radio-group v-model="bookData.needAddress">
-          <el-radio label="线上" :value="false"></el-radio>
-          <el-radio label="线下" :value="true"></el-radio>
+        <el-radio-group v-model="bookData.meetingType">
+          <el-radio label="线上" :value="1"></el-radio>
+          <el-radio label="线下" :value="0"></el-radio>
         </el-radio-group>
       </el-form-item>
 
-      <el-form-item v-if="bookData.needAddress" label="地址">
+      <el-form-item v-if="bookData.meetingType" label="地址">
         <Map @change="getAddress"></Map>
       </el-form-item>
 
       <el-form-item label="隐私">
-        <el-radio-group v-model="bookData.isPrivate">
-          <el-radio label="公开" :value="true"></el-radio>
-          <el-radio label="私有" :value="false"></el-radio>
+        <el-radio-group v-model="bookData.isprivate">
+          <el-radio label="公开" :value="1"></el-radio>
+          <el-radio label="私有" :value="0"></el-radio>
         </el-radio-group>
       </el-form-item>
       <el-form-item label="密码">
-        <el-checkbox
-          label="是否需要密码"
-          v-model="bookData.needPassword"
-        ></el-checkbox>
+        <el-checkbox label="是否需要密码" v-model="needPassword"></el-checkbox>
       </el-form-item>
-      <el-form-item v-if="bookData.needPassword">
+      <el-form-item v-if="needPassword">
         <el-input v-model="bookData.password" placeholder=""></el-input>
       </el-form-item>
       <el-form-item label="文档">
@@ -163,12 +184,12 @@
           >
         </el-upload>
       </el-form-item>
-      <el-form-item label="录制">
+      <!-- <el-form-item label="录制">
         <el-radio-group v-model="bookData.needRecord">
           <el-radio label="开启录制" :value="true"></el-radio>
           <el-radio label="关闭录制" :value="false"></el-radio>
         </el-radio-group>
-      </el-form-item>
+      </el-form-item> -->
     </el-form>
     <template #footer>
       <div class="dialog-footer">
@@ -190,8 +211,10 @@ import { useRouter } from "vue-router";
 import { ElMessage, ElMessageBox } from "element-plus";
 
 import type { UploadProps, UploadUserFile } from "element-plus";
-import type { MeetingSettings } from "@/types/home";
+import type { MeetingSettings, MeetingSetting } from "@/types/home";
 import { useMeetingStore } from "@/stores/meetingStore";
+import { createMeetingAPI, quicklyMeetingAPI } from "@/apis/meeting";
+import { useUserStore } from "@/stores/userStore";
 
 const router = useRouter();
 
@@ -219,27 +242,53 @@ const addFormData = ref<MeetingSettings>({
   startWithAudioMuted: true,
   startWithVideoMuted: false,
 });
-
-const bookData = ref({
+// 是否需要密码
+const needPassword = ref(false);
+// 是否需要提醒
+const isRemind = ref(false);
+const remindType = ref("邮箱");
+const bookData = ref<MeetingSetting>({
   title: "",
-  creatTime: "",
-  time: 30,
-  isBook: false,
-  needPassword: false,
-  password: "",
-  isPrivate: false,
-  needAddress: false,
+  userId: 1,
+  startTime: "",
+  // 0线下 1线上
+  meetingType: 0,
   address: "",
-  needRecord: false,
+  lat: null,
+  lng: null,
+  password: "",
+  // 0公有 1私有
+  isprivate: 1,
+  duration: 1,
 });
 
 const meetingStore = useMeetingStore();
 
-const toConfirm = () => {
+const bookMeeting = async () => {
+  const res = await createMeetingAPI(bookData.value);
+
+  if (res.data.code === 200) {
+    ElMessage.success("预约成功");
+  } else {
+    ElMessage.error(res.data.message);
+  }
+};
+
+const userStore = useUserStore();
+
+const quicklyMeeting = async () => {
+  const res = await quicklyMeetingAPI(userStore.user!.id);
+
+  if (res.data.code === 200) {
+    return res.data.data;
+  } else ElMessage.error(res.data.message);
+};
+
+const toConfirm = async () => {
   switch (status.value) {
     case 1:
       {
-        console.log(addFormData.value)
+        console.log(addFormData.value);
         meetingStore.setMeetingSetting(addFormData.value);
         router.push("/jisit/" + addFormData.value.id);
       }
@@ -247,11 +296,18 @@ const toConfirm = () => {
     case 2:
       {
         // 创建会议
-
-        router.push("/jisit/1");
+        let id = await quicklyMeeting();
+        meetingStore.setMeetingSetting({
+          id: id,
+        });
+        router.push("/jisit/" + id);
       }
       break;
     case 3:
+      {
+        // 预约会议
+        bookMeeting();
+      }
       break;
   }
 

@@ -53,7 +53,7 @@
       </div>
     </div>
     <div class="bottom">
-      <el-button type="primary" :icon="View" @click="getRank">查看排行榜</el-button>
+      <!-- <el-button type="primary" :icon="View" @click="getRank">查看排行榜</el-button> -->
       <el-table :data="tableData" style="width: 100%">
         <el-table-column prop="id" label="id" />
         <el-table-column prop="label" label="名称" />
@@ -64,12 +64,13 @@
         </el-table-column>
         <el-table-column prop="views" label="浏览" />
         <el-table-column prop="likes" label="点赞" />
-        <el-table-column prop="star" label="收藏" />
-        <el-table-column prop="replyNumber" label="回帖数量" />
-        <el-table-column label="操作" width="180">
-          <template #default="scope">
-            <el-button type="success">查看</el-button>
-            <el-button type="danger">删除</el-button>
+        <el-table-column prop="favorites" label="收藏" />
+        <el-table-column prop="comments" label="回帖数量" />
+        <el-table-column label="操作" width="320" align="center">
+          <template #default="scope" >
+            <el-button type="success" @click="changeStatus(scope.row.id,1)">通过</el-button>
+            <el-button type="danger" @click="changeStatus(scope.row.id,2)">不通过</el-button>
+            <el-button type="primary" @click="$router.push('/forum/'+scope.row.id)">查看</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -92,22 +93,13 @@
 </template>
 
 <script lang="ts" setup>
-import { adminGetAllPostAPI } from "@/apis/admin";
-import { getRankingAPI } from "@/apis/forum";
+import { adminGetAllPostAPI, adminUpdatePostStatusAPI } from "@/apis/admin";
 import type { AdminPost } from "@/types/home";
-import { View } from "@element-plus/icons-vue";
+import { number } from "echarts";
 import { ElMessage } from "element-plus";
 import { onMounted, ref } from "vue";
-import { useRouter } from "vue-router";
 
 const tableData = ref<Array<AdminPost>>([]);
-
-const router=useRouter()
-
-// 排行榜
-const getRank=async()=>{
-  router.push('/back/forum/rank')
-}
 
 const pageData=ref({
   currentPage:1,
@@ -125,6 +117,16 @@ const getPost=async()=>{
   else {
     ElMessage.error(res.data.message)
   }
+}
+
+const changeStatus=async (id:number,status:number)=>{
+  const res = await adminUpdatePostStatusAPI(id,status);
+
+  if(res.data.code===200){
+    ElMessage.success('操作成功')
+    getPost()
+  }
+  else ElMessage.error(res.data.message)
 }
 
 onMounted(() => {

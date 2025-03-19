@@ -15,6 +15,9 @@
         />
       </el-button>
     </div>
+    <div v-if="meetingSettings.isCaptions" class="captions">
+      <span>字幕加载中……</span>
+    </div>
   </div>
 
   <el-dialog
@@ -30,17 +33,54 @@
   >
     <el-tabs tab-position="left" style="height: 500px" class="demo-tabs">
       <el-tab-pane label="智通会话">
-        <div class="message">
-          <span class="date">2024/12/12 12:00</span>
-          <div class="aiMessage">
-            <img src="../../assets/img/logo.png" alt="">
-            <span>123</span>
+        <div
+          style="
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+          "
+        >
+          <div class="messagesBox">
+            <div class="message" v-for="(item, index) in messageList">
+              <div v-if="item.role === 'assistant'" class="aiMessage">
+                <img src="../../assets/img/logo.png" alt="" />
+
+                <span
+                  v-if="isLoading && index === messageList.length - 1"
+                  class="message"
+                >
+                  <img
+                    style="
+                      padding: 0 10px;
+                      width: 20px;
+                      height: 20px;
+                      transform: scale(3);
+                    "
+                    src="../../assets/loading.gif"
+                    alt=""
+                  />
+                </span>
+                <span v-else v-html="md.render(item.content)"></span>
+              </div>
+
+              <div v-else class="myMessage">
+                <span>{{ item.content }}</span>
+              </div>
+            </div>
           </div>
-        </div>
-        <div class="message">
-          <span class="date">2024/12/12 12:00</span>
-          <div class="myMessage">
-            <span>123</span>
+
+          <div class="inputBox">
+            <el-input
+              rows="5"
+              resize="none"
+              type="textarea"
+              v-model="sendText"
+              placeholder="请输入你想输入的问题"
+            >
+            </el-input>
+            <div class="submit">
+              <el-button type="primary" @click="startAgent">发送</el-button>
+            </div>
           </div>
         </div>
       </el-tab-pane>
@@ -48,20 +88,22 @@
         <el-upload
           v-model:file-list="fileList"
           class="upload-demo"
-          action="https://run.mocky.io/v3/9d059bf9-4660-45f2-925d-ce80ad6c4d15"
+          action="/open/api/v2/agent/file/upload"
           :on-preview="handlePreview"
           :on-remove="handleRemove"
-          list-type="picture"
+          :on-success="handleSuccess"
+          :headers="header"
         >
           <el-button type="primary">点击上传</el-button>
           <el-button @click.stop="aiGenerate" text="plain" type="primary"
-            >AI查询会议资源</el-button
+            >AI获取会议资源</el-button
           >
           <template #tip>
             <div class="el-upload__tip">可选择文件上传</div>
           </template>
         </el-upload>
       </el-tab-pane>
+
       <el-tab-pane label="智能总结">
         <button type="button" class="button">
           <span class="fold"></span>
@@ -98,45 +140,45 @@
         </button>
       </el-tab-pane>
 
-      <el-tab-pane label="代办事项">
-       
-      </el-tab-pane>
+      <el-tab-pane label="代办事项"> </el-tab-pane>
 
       <el-tab-pane label="会议设置">
-        <el-form label-position="left">
+        <el-form label-position="left" :data="meetingSettings">
           <el-form-item label="开启会议录制">
             <el-switch
-              v-model="isRecord"
+              v-model="meetingSettings.isRecord"
               active-color="#13ce66"
               inactive-color="#ff4949"
             ></el-switch>
           </el-form-item>
           <el-form-item label="实时字幕">
             <el-switch
-              v-model="isRecord"
+              v-model="meetingSettings.isCaptions"
               active-color="#13ce66"
               inactive-color="#ff4949"
             ></el-switch>
+            <div v-if="meetingSettings.isCaptions" style="margin-left: 20px">
+              <span style="margin-right: 20px">是否开启翻译</span>
+              <el-switch
+                v-model="meetingSettings.isTransition"
+                active-color="#13ce66"
+                inactive-color="#ff4949"
+              ></el-switch>
+            </div>
           </el-form-item>
-          <el-form-item label="智能区分发言人">
-            <el-switch
-              v-model="isRecord"
-              active-color="#13ce66"
-              inactive-color="#ff4949"
-            ></el-switch>
-          </el-form-item>
+
+    
           <el-form-item label="分享会议">
             <el-button text="plain" type="primary">链接分享</el-button>
           </el-form-item>
           <el-form-item label="签到">
             <el-button type="primary" text="plain">查看已到</el-button>
+            <el-button type="primary" text="plain">导出成excel</el-button>
           </el-form-item>
         </el-form>
       </el-tab-pane>
 
-      <el-tab-pane label="推荐会议">
-        
-      </el-tab-pane>
+      <el-tab-pane label="推荐会议"></el-tab-pane>
     </el-tabs>
   </el-dialog>
 </template>
@@ -144,12 +186,26 @@
 <script lang="ts" setup>
 import { applyReactInVue } from "veaury";
 import myReactComponent from "./jisit.tsx"; // 注意组件命名规范
-import { ref,onMounted } from "vue";
+import { ref, onMounted } from "vue";
 import type { UploadProps, UploadUserFile } from "element-plus";
-import { agentExecuteAPI } from "@/apis/ai/ai.ts";
+import { agentExecuteAPI, fileDownloadAPI } from "@/apis/ai/ai.ts";
+import { appKey, getSign } from "@/apis/ai/base.ts";
+import type { AgentMessageList } from "@/types/home";
 
-const isRecord = ref(false);
+import MarkdownIt from "markdown-it";
+let md: MarkdownIt = new MarkdownIt();
+
+const meetingSettings = ref({
+  isRecord: false,
+  isCaptions: false,
+  isDistinct: false,
+  isTransition: false,
+});
+//const isRecord = ref(false);
 const dialogVisible = ref(false);
+
+const MyReactComponent = applyReactInVue(myReactComponent);
+
 // 穿透遮罩层
 function handleOverlay() {
   //获取对话框Dom
@@ -165,36 +221,145 @@ function handleOverlay() {
   overlayGfa.style.pointerEvents = "none";
 }
 
-const fileList = ref<UploadUserFile[]>([
-  {
-    name: "food.jpeg",
-    url: "https://fuss10.elemecdn.com/3/63/4e7f3a15429bfda99bce42a18cdd1jpeg.jpeg?imageMogr2/thumbnail/360x360/format/webp/quality/100",
-  },
-  {
-    name: "food2.jpeg",
-    url: "https://fuss10.elemecdn.com/3/63/4e7f3a15429bfda99bce42a18cdd1jpeg.jpeg?imageMogr2/thumbnail/360x360/format/webp/quality/100",
-  },
-]);
+const fileList = ref<UploadUserFile[]>([]);
 
 const handleRemove: UploadProps["onRemove"] = (uploadFile, uploadFiles) => {
   console.log(uploadFile, uploadFiles);
 };
 
-const handlePreview: UploadProps["onPreview"] = (file) => {
+const handlePreview: UploadProps["onPreview"] = async (file) => {
   console.log(file);
+  //下载
+
+  const res = await fileDownloadAPI(file.url!);
+
+  console.log(res.data);
 };
+
+const handleSuccess = (response: any) => {
+  console.log(response.tid);
+  fileList.value[fileList.value.length - 1].url = response.data;
+};
+
+const header = ref({
+  appKey: appKey,
+  sign: "",
+});
 
 const aiGenerate = () => {};
 
-const MyReactComponent = applyReactInVue(myReactComponent);
+const start = async () => {
+  header.value.sign = await getSign();
+};
 
-const start=()=>{
-  agentExecuteAPI()
+onMounted(() => {
+  //start();
+});
+
+// 关于智通会话的代码
+const sendText = ref("");
+const isLoading = ref(false);
+
+const messageList = ref<AgentMessageList>([
+  {
+    role: "user",
+    content: "你好",
+  },
+  {
+    role: "assistant",
+    content: "你好我是你的ai小助手",
+  },
+]);
+
+// 解码包含Unicode转义序列的字符串
+function decodeUnicode(str: string) {
+  return str.replace(/\\u[\dA-Fa-f]{4}/g, function (match) {
+    return String.fromCharCode(parseInt(match.substr(2), 16));
+  });
 }
 
-onMounted(()=>{
-  start()
-})
+let arry: string[] = []; // 存储待渲染的字符串
+let isRendering = false; // 标记是否正在渲染
+
+function handleRender(newText: string) {
+  arry.push(newText); // 将新内容添加到队列
+
+  // 如果当前没有正在渲染的任务，则开始渲染
+  if (!isRendering) {
+    renderNext();
+  }
+}
+
+/**
+ * 逐步渲染队列中的文字内容
+ */
+function renderNext() {
+  if (arry.length === 0) {
+    isRendering = false; // 如果没有更多内容，停止渲染
+    return;
+  }
+
+  isRendering = true; // 标记为正在渲染
+
+  const currentText = arry.shift()!; // 取出队列中的第一段文字
+  const chars = Array.from(currentText); // 将字符串拆分为字符数组
+  let index = 0; // 当前渲染的字符索引
+  const interval = 50; // 渲染间隔时间（毫秒）
+  const step = 3; // 每次渲染的字符数
+
+  // 使用 setInterval 逐步渲染
+  const timer = setInterval(() => {
+    if (index >= chars.length) {
+      // 如果当前字符串渲染完成，清除定时器并处理下一段文字
+      clearInterval(timer);
+      renderNext(); // 递归调用，处理下一段文字
+      return;
+    }
+
+    // 每次渲染 step 个字符
+    const chunk = chars.slice(index, index + step).join("");
+    // console.log(chunk); // 这里可以替换为实际的 UI 更新逻辑
+    setTimeout(() => {
+      messageList.value[messageList.value.length - 1].content += chunk;
+    });
+    index += step; // 更新索引
+  }, interval);
+}
+
+const startAgent = async () => {
+  //设置isloading
+
+  isLoading.value = true;
+
+  let str = sendText.value;
+
+  messageList.value.push({
+    role: "user",
+    content: sendText.value,
+  });
+  messageList.value.push({
+    role: "assistant",
+    content: "",
+  });
+
+  sendText.value = "";
+
+  const res = await agentExecuteAPI(str);
+
+  isLoading.value = false;
+
+  console.log(
+    res.data.data.session.messages[res.data.data.session.messages.length - 1]
+      .content
+  );
+
+  let decodeContent = decodeUnicode(
+    res.data.data.session.messages[res.data.data.session.messages.length - 1]
+      .content
+  );
+  // messageList.value[messageList.value.length-1].content+=res.data.data.session.messages[res.data.data.session.messages.length-1].content
+  handleRender(decodeContent);
+};
 </script>
 
 <style lang="scss" scoped>
@@ -209,6 +374,28 @@ onMounted(()=>{
     right: 80px;
     bottom: 80px;
   }
+
+  .captions {
+    position: absolute;
+    bottom: 80px;
+    width: 100vw;
+    display: flex;
+    justify-content: center;
+
+    span {
+      color: white;
+      margin: 0 auto;
+      font-size: 20px;
+    }
+  }
+}
+
+.messagesBox {
+  min-height: 380px;
+  height: 380px;
+  display: flex;
+  flex-direction: column;
+  overflow-y: scroll;
 }
 
 .message {
@@ -230,18 +417,17 @@ onMounted(()=>{
     display: flex;
     justify-content: left;
 
-    img{
+    img {
       width: 40px;
       height: 40px;
-      margin-right: 20px;
+      margin-right: 10px;
     }
 
     span {
-      background-color: $primary-color;
-      color: white;
+      background-color: $primary-message-background-color;
       margin-right: 60px;
       padding: 10px;
-      border-radius: 10px 10px 10px 0px;
+      border-radius: 0px 10px 10px 10px;
     }
   }
 
@@ -250,14 +436,26 @@ onMounted(()=>{
     justify-content: right;
 
     span {
-      background-color: $primary-message-background-color;
+      background-color: $primary-color;
+      color: white;
       margin-left: 60px;
       padding: 10px;
       border-radius: 10px 10px 0px 10px;
     }
   }
 }
+.inputBox {
+  // background-color: red;
+  position: relative;
 
+  //height: 100px;
+
+  .submit {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+  }
+}
 /* From Uiverse.io by ilkhoeri */
 .button {
   --h-button: 48px;

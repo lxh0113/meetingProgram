@@ -5,68 +5,26 @@
         style="box-sizing: border-box; padding-right: 30px"
         max-height="600px"
       >
-        <div class="aiMessage">
-          <div class="avatar">
-            <el-avatar :size="50">智通</el-avatar>
+        <div
+          v-for="(item, index) in messageList"
+          :class="item.role === 'assistant' ? 'aiMessage' : 'myMessage'"
+        >
+          <div
+            v-if="isLoading && index === messageList.length - 1"
+            class="message"
+          >
+            <img
+              style="
+                padding: 0 10px;
+                width: 20px;
+                height: 20px;
+                transform: scale(3) translateY(2px);
+              "
+              src="../../assets/loading.gif"
+              alt=""
+            />
           </div>
-          <div class="message">
-            全球 Web 图标 deepseek.com https://www.deepseek.com DeepSeek
-            DeepSeek, unravel the mystery of AGI with curiosity. Answer the
-            essential question with long-termism. 🎉 DeepSeek-R1 is now live and
-            open source, rivaling OpenAI's Model o1. Introducing DeepSeek-V3 🌟
-            DeepSeek’s mission is unwavering. We’re thrilled to share our
-            progress with the community and see the gap between open and closed
-            models na… 仅显示来自 deepseek.com 的搜索结果 Deepseek的最新相关信息
-            突上热搜！DeepSeek美国商标，被梁文锋校友抢注！ 新浪网 · 2 小时
-            突上热搜！DeepSeek美国商标，被梁文锋校友抢注！
-            瓦伊什瑙特别提到了中国的DeepSeek，称赞其凭借低成本的AI模型对行业产生了重大影响，并透露DeepSeek即将部署在印度的服务器上。这一消息是在美国科技巨头OpenAI的CEO萨姆·奥特曼去年访印期间，对印度团队计划以1000万美元构建类似模型表示怀疑之后提出的。外界认为，美国对DeepSeek的打压可能加速了印度本土化人工智能发展的步伐。
-            预测2025年八大趋势，DeepSeek的回答很惊艳 搜狐 · 5 小时
-            预测2025年八大趋势，DeepSeek的回答很惊艳
-            最后，DeepSeek给出结论：2025年必然会有新的网红城市诞生，但其爆发逻辑可能从单一“美食/景观驱动”转向更复杂的
-            “文化叙事+体验创新+数字技术融合” 模式，比如元宇宙文旅试验城市。
-            作为一个严谨认真的AI工具，DeepSeek并未直接回答“会”或者“不会”，而是先分析了价格战可能会延续的三大底层逻辑：产能过剩仍未根治，技术平权削弱溢价空间，消费需求结构性疲软。
-            重磅！OpenAI推o3-mini新模型，被DeepSeek逼急？定价仍打不过 36氪 · 3
-            小时 重磅！OpenAI推o3-mini新模型，被DeepSeek逼急？定价仍打不过
-            OpenAI称这是其最具成本效益的推理模型，复杂推理和对话能力显著提升，在科学、数学、编程等领域的性能表现超过前代o1模型，同时保持了o1-mini的低成本和低延迟，并
-            可与联网搜索功能搭配使用 。
-            DeepSeek梁文锋同乡：他回村短暂停留就离开，接到过同事电话，感到 ...
-            新浪网 · 2 小时
-            DeepSeek梁文锋同乡：他回村短暂停留就离开，接到过同事电话，感到 ...
-            他回乡后受到了村民的热烈欢迎。有村民在年廿九晚与他偶遇，称他非常低调热情。当时这位村民偶遇梁文锋后，梁文锋还邀请他过去喝水弹吉他，随后其电话响起，应该是公司的人在讨论有关公司的事情，之后村民与他匆匆打了个招呼。村民深深祝福，希望他保重，为国家做好这个软件。
-            网易 · 1 小时 事关DeepSeek，美巨头接连宣布
-            事关DeepSeek，美巨头接连宣布,英伟达,微软,nvidia,deepseek,openai,芯片
-            ...
-          </div>
-        </div>
-        <div class="myMessage">
-          <div class="message">
-            全球 Web 图标 deepseek.com https://www.deepseek.com DeepSeek
-            DeepSeek, unravel the mystery of AGI with curiosity. Answer the
-            essential question with long-termism. 🎉 DeepSeek-R1 is now live and
-            open source, rivaling OpenAI's Model o1. Introducing DeepSeek-V3 🌟
-            DeepSeek’s mission is unwavering. We’re thrilled to share our
-            progress with the community and see the gap between open and closed
-            models na… 仅显示来自 deepseek.com 的搜索结果 Deepseek的最新相关信息
-            突上热搜！DeepSeek美国商标，被梁文锋校友抢注！ 新浪网 · 2 小时
-            突上热搜！DeepSeek美国商标，被梁文锋校友抢注！
-            瓦伊什瑙特别提到了中国的DeepSeek，称赞其凭借低成本的AI模型对行业产生了重大影响，并透露DeepSeek即将部署在印度的服务器上。这一消息是在美国科技巨头OpenAI的CEO萨姆·奥特曼去年访印期间，对印度团队计划以1000万美元构建类似模型表示怀疑之后提出的。外界认为，美国对DeepSeek的打压可能加速了印度本土化人工智能发展的步伐。
-            预测2025年八大趋势，DeepSeek的回答很惊艳 搜狐 · 5 小时
-            预测2025年八大趋势，DeepSeek的回答很惊艳
-            最后，DeepSeek给出结论：2025年必然会有新的网红城市诞生，但其爆发逻辑可能从单一“美食/景观驱动”转向更复杂的
-            “文化叙事+体验创新+数字技术融合” 模式，比如元宇宙文旅试验城市。
-            作为一个严谨认真的AI工具，DeepSeek并未直接回答“会”或者“不会”，而是先分析了价格战可能会延续的三大底层逻辑：产能过剩仍未根治，技术平权削弱溢价空间，消费需求结构性疲软。
-            重磅！OpenAI推o3-mini新模型，被DeepSeek逼急？定价仍打不过 36氪 · 3
-            小时 重磅！OpenAI推o3-mini新模型，被DeepSeek逼急？定价仍打不过
-            OpenAI称这是其最具成本效益的推理模型，复杂推理和对话能力显著提升，在科学、数学、编程等领域的性能表现超过前代o1模型，同时保持了o1-mini的低成本和低延迟，并
-            可与联网搜索功能搭配使用 。
-            DeepSeek梁文锋同乡：他回村短暂停留就离开，接到过同事电话，感到 ...
-            新浪网 · 2 小时
-            DeepSeek梁文锋同乡：他回村短暂停留就离开，接到过同事电话，感到 ...
-            他回乡后受到了村民的热烈欢迎。有村民在年廿九晚与他偶遇，称他非常低调热情。当时这位村民偶遇梁文锋后，梁文锋还邀请他过去喝水弹吉他，随后其电话响起，应该是公司的人在讨论有关公司的事情，之后村民与他匆匆打了个招呼。村民深深祝福，希望他保重，为国家做好这个软件。
-            网易 · 1 小时 事关DeepSeek，美巨头接连宣布
-            事关DeepSeek，美巨头接连宣布,英伟达,微软,nvidia,deepseek,openai,芯片
-            ...
-          </div>
+          <div v-else class="message" v-html="md.render(item.content)"></div>
         </div>
       </el-scrollbar>
       <div class="inputBox">
@@ -74,9 +32,10 @@
           class="input"
           name="text"
           type="text"
+          v-model="input"
           placeholder="请输入你的问题..."
         />
-        <button>提问</button>
+        <button @click="startAgent">提问</button>
       </div>
     </div>
     <div class="right">
@@ -85,13 +44,152 @@
   </div>
 </template>
 
-<script lang="ts" setup></script>
+<script lang="ts" setup>
+import { agentExecuteAPI } from "@/apis/ai/ai";
+import { fetchEventSource } from "@microsoft/fetch-event-source";
+import { onMounted, ref } from "vue";
+import { appKey, getSign, agentId } from "../../apis/ai/base";
+import { v4 as uuidv4 } from "uuid";
+import type { AgentMessageList } from "@/types/home";
+
+import MarkdownIt from "markdown-it";
+let md: MarkdownIt = new MarkdownIt();
+
+const messageList = ref<AgentMessageList>([
+  {
+    role: "user",
+    content: "你好",
+  },
+  {
+    role: "assistant",
+    content: "你好我是你的ai小助手",
+  },
+]);
+
+const input = ref("请问如何学习");
+const isLoading = ref(false);
+
+// 解码包含Unicode转义序列的字符串
+function decodeUnicode(str: string) {
+  return str.replace(/\\u[\dA-Fa-f]{4}/g, function (match) {
+    return String.fromCharCode(parseInt(match.substr(2), 16));
+  });
+}
+
+let arry: string[] = []; // 存储待渲染的字符串
+let isRendering = false; // 标记是否正在渲染
+
+function handleRender(newText: string) {
+  arry.push(newText); // 将新内容添加到队列
+
+  // 如果当前没有正在渲染的任务，则开始渲染
+  if (!isRendering) {
+    renderNext();
+  }
+}
+
+/**
+ * 逐步渲染队列中的文字内容
+ */
+function renderNext() {
+  if (arry.length === 0) {
+    isRendering = false; // 如果没有更多内容，停止渲染
+    return;
+  }
+
+  isRendering = true; // 标记为正在渲染
+
+  const currentText = arry.shift()!; // 取出队列中的第一段文字
+  const chars = Array.from(currentText); // 将字符串拆分为字符数组
+  let index = 0; // 当前渲染的字符索引
+  const interval = 50; // 渲染间隔时间（毫秒）
+  const step = 3; // 每次渲染的字符数
+
+  // 使用 setInterval 逐步渲染
+  const timer = setInterval(() => {
+    if (index >= chars.length) {
+      // 如果当前字符串渲染完成，清除定时器并处理下一段文字
+      clearInterval(timer);
+      renderNext(); // 递归调用，处理下一段文字
+      return;
+    }
+
+    // 每次渲染 step 个字符
+    const chunk = chars.slice(index, index + step).join("");
+    // console.log(chunk); // 这里可以替换为实际的 UI 更新逻辑
+    setTimeout(() => {
+      messageList.value[messageList.value.length - 1].content += chunk;
+    });
+    index += step; // 更新索引
+  }, interval);
+}
+
+const startAgent = async () => {
+  //设置isloading
+
+  isLoading.value = true;
+
+  let str = input.value;
+
+  messageList.value.push({
+    role: "user",
+    content: input.value,
+  });
+  messageList.value.push({
+    role: "assistant",
+    content: "",
+  });
+
+  input.value = "";
+
+  const res = await agentExecuteAPI(str);
+
+  isLoading.value = false;
+
+  console.log(
+    res.data.data.session.messages[res.data.data.session.messages.length - 1]
+      .content
+  );
+
+  let decodeContent = decodeUnicode(
+    res.data.data.session.messages[res.data.data.session.messages.length - 1]
+      .content
+  );
+  // messageList.value[messageList.value.length-1].content+=res.data.data.session.messages[res.data.data.session.messages.length-1].content
+  handleRender(decodeContent);
+
+  // await fetchEventSource("/open/api/v2/agent/execute",{
+  //   method:"POST",
+  //   headers:{
+  //     "appKey":appKey,
+  //     "sign":await getSign(),
+  //     "Access-Control-Allow-Origin":"*"
+  //   },
+  //   body:JSON.stringify({
+  //     sid:uuidv4(),
+  //       id:agentId,
+  //       input:input.value,
+  //       stream:true
+  //   }),
+  //   onmessage(event){
+  //     let data=JSON.parse(event.data)
+  //     console.log(data)
+  //   }
+  // })
+};
+
+onMounted(() => {});
+</script>
 
 <style lang="scss" scoped>
+
 .zhitongBox {
   padding: 20px;
   box-sizing: border-box;
   display: flex;
+  // background-color: red;
+  min-height: calc(100vh - 200px);
+  align-items: stretch;
 
   .left {
     flex: 1;
@@ -99,7 +197,7 @@
 
     .aiMessage {
       display: flex;
-      justify-content: flex-start;
+      justify-content: left;
       margin-bottom: 20px;
       margin-right: 20px;
 
@@ -108,14 +206,13 @@
       }
 
       .message {
-        flex: 1;
+        // flex: 1;
         background: rgba(255, 255, 255, 1);
-        border: 1px solid $primary-border-color;
-        box-shadow: rgba(17, 17, 26, 0.1) 0px 4px 16px,
-          rgba(17, 17, 26, 0.05) 0px 8px 32px;
+        // border: 1px solid $primary-border-color;
+        background-color: $primary-message-background-color;
         box-sizing: border-box;
         padding: 20px;
-        border-radius: 20px;
+        border-radius: 20px 20px 20px 0px;
         //   border:1px solid $primary-border-color;
       }
     }
@@ -145,7 +242,7 @@
         width: 200px;
         font-size: 18px;
         border-radius: 30px;
-        border:none;
+        border: none;
         color: white;
         opacity: 1;
         margin-left: 20px;
