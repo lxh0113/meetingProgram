@@ -253,7 +253,7 @@ const start = async () => {
 };
 
 onMounted(() => {
-  //start();
+  start();
 });
 
 // 关于智通会话的代码

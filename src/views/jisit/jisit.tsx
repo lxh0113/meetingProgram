@@ -46,6 +46,7 @@ function MyReactComponent() {
         const inputData = event.inputBuffer.getChannelData(0); // 获取单声道数据
         const pcmData = convertFloat32ToPCM(inputData); // 转换为 16bit PCM
         if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+          // console.log(pcmData)
           wsRef.current.send(pcmData); // 通过 WebSocket 发送 PCM 数据
         }
       };
@@ -57,9 +58,12 @@ function MyReactComponent() {
       processorRef.current = processor;
 
       // 初始化 WebSocket
-      wsRef.current = new WebSocket("ws://192.168.50.59:8081/audio-stream"); // 替换为你的 WebSocket 地址
+      wsRef.current = new WebSocket("ws://10.251.11.110:8765/"); // 替换为你的 WebSocket 地址
       wsRef.current.onopen = () => {
         console.log("WebSocket 连接已建立");
+      };
+      wsRef.current.onmessage = (event) => {
+        console.log(event);
       };
       wsRef.current.onerror = (error) => {
         console.error("WebSocket 错误:", error);
