@@ -45,14 +45,21 @@
 </template>
 
 <script lang="ts" setup>
-import { agentExecuteAPI } from "@/apis/ai/ai";
+import { agentExecuteAPI, getAiBaseURL } from "@/apis/ai/ai";
 import { fetchEventSource } from "@microsoft/fetch-event-source";
 import { onMounted, ref } from "vue";
-import { appKey, getSign, agentId } from "../../apis/ai/base";
+import {
+  appKey,
+  getSign,
+  agentId,
+  getHeaders,
+} from "../../apis/ai/base";
 import { v4 as uuidv4 } from "uuid";
 import type { AgentMessageList } from "@/types/home";
 
 import MarkdownIt from "markdown-it";
+import { SSEService } from "@/utils/sse";
+import { API_ENDPOINTS } from "@/apis/ai/aiSse";
 let md: MarkdownIt = new MarkdownIt();
 
 const messageList = ref<AgentMessageList>([
@@ -124,6 +131,8 @@ function renderNext() {
   }, interval);
 }
 
+let header={}
+
 const startAgent = async () => {
   //设置isloading
 
@@ -140,49 +149,51 @@ const startAgent = async () => {
     content: "",
   });
 
-  input.value = "";
+  const sse = new SSEService();
 
-  const res = await agentExecuteAPI(str);
-
-  isLoading.value = false;
-
-  console.log(
-    res.data.data.session.messages[res.data.data.session.messages.length - 1]
-      .content
+  sse.connect(
+    API_ENDPOINTS.EXECUTE,
+    "POST",
+    {
+      sid: uuidv4(),
+      id: agentId,
+      input: input.value,
+      stream: true,
+    },
+    (event) => {
+      // input.value = "";
+      // console.log(event)
+      console.log(event.data);
+      console.log(JSON.parse(event.data))
+    },
+    header
   );
 
-  let decodeContent = decodeUnicode(
-    res.data.data.session.messages[res.data.data.session.messages.length - 1]
-      .content
-  );
-  // messageList.value[messageList.value.length-1].content+=res.data.data.session.messages[res.data.data.session.messages.length-1].content
-  handleRender(decodeContent);
+  // input.value = "";
 
-  // await fetchEventSource("/open/api/v2/agent/execute",{
-  //   method:"POST",
-  //   headers:{
-  //     "appKey":appKey,
-  //     "sign":await getSign(),
-  //     "Access-Control-Allow-Origin":"*"
-  //   },
-  //   body:JSON.stringify({
-  //     sid:uuidv4(),
-  //       id:agentId,
-  //       input:input.value,
-  //       stream:true
-  //   }),
-  //   onmessage(event){
-  //     let data=JSON.parse(event.data)
-  //     console.log(data)
-  //   }
-  // })
+  // const res = await agentExecuteAPI(str);
+
+  // isLoading.value = false;
+
+  // console.log(
+  //   res.data.data.session.messages[res.data.data.session.messages.length - 1]
+  //     .content
+  // );
+
+  // let decodeContent = decodeUnicode(
+  //   res.data.data.session.messages[res.data.data.session.messages.length - 1]
+  //     .content
+  // );
+  // // messageList.value[messageList.value.length-1].content+=res.data.data.session.messages[res.data.data.session.messages.length-1].content
+  // handleRender(decodeContent);
 };
 
-onMounted(() => {});
+onMounted(async() => {
+  header=await getHeaders()
+});
 </script>
 
 <style lang="scss" scoped>
-
 .zhitongBox {
   padding: 20px;
   box-sizing: border-box;

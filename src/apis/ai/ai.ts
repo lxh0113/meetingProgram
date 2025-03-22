@@ -1,26 +1,32 @@
 import axios from "axios";
 import http from "../../utils/http";
 
-import { appKey, getSign,agentId } from "./base";
+import { appKey, getSign, agentId } from "./base";
 import { v4 as uuidv4 } from "uuid";
 
 axios.defaults.headers["appKey"] = appKey;
 axios.defaults.headers["sign"] = await getSign();
 axios.defaults.headers["Access-Control-Allow-Origin"] = "*";
 
+const PRE_URL = "https://www.das-ai.com";
+
 // 定义 API 基础路径
 const API_BASE_URL = "/open/api/v2";
 
+export const getAiBaseURL = () => {
+  return PRE_URL + API_BASE_URL;
+};
+
 // 智能体执行
-export const agentExecuteAPI = (input?:string) => {
+export const agentExecuteAPI = (input?: string) => {
   return axios({
     url: `${API_BASE_URL}/agent/execute`,
     method: "POST",
     data: {
-        sid:uuidv4(),
-        id:agentId,
-        input,
-        stream:false
+      sid: uuidv4(),
+      id: agentId,
+      input,
+      stream: false,
     },
   });
 };
@@ -47,13 +53,13 @@ export const fileUploadAPI = () => {
 };
 
 // 文件下载
-export const fileDownloadAPI = (fileId:string) => {
+export const fileDownloadAPI = (fileId: string) => {
   return axios({
     url: `${API_BASE_URL}/agent/file/download`,
-    method:"POST",
-    data:{
-      fileId
-    }
+    method: "POST",
+    data: {
+      fileId,
+    },
   });
 };
 

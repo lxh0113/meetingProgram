@@ -16,7 +16,8 @@
       </el-button>
     </div>
     <div v-if="meetingSettings.isCaptions" class="captions">
-      <span>字幕加载中……</span>
+      <span>{{ captions }}</span>
+      <span>{{ transText }}</span>
     </div>
   </div>
 
@@ -167,7 +168,6 @@
             </div>
           </el-form-item>
 
-    
           <el-form-item label="分享会议">
             <el-button text="plain" type="primary">链接分享</el-button>
           </el-form-item>
@@ -186,7 +186,7 @@
 <script lang="ts" setup>
 import { applyReactInVue } from "veaury";
 import myReactComponent from "./jisit.tsx"; // 注意组件命名规范
-import { ref, onMounted } from "vue";
+import { ref, onMounted, onUnmounted } from "vue";
 import type { UploadProps, UploadUserFile } from "element-plus";
 import { agentExecuteAPI, fileDownloadAPI } from "@/apis/ai/ai.ts";
 import { appKey, getSign } from "@/apis/ai/base.ts";
@@ -197,12 +197,14 @@ let md: MarkdownIt = new MarkdownIt();
 
 const meetingSettings = ref({
   isRecord: false,
-  isCaptions: false,
+  isCaptions: true,
   isDistinct: false,
-  isTransition: false,
+  isTransition: true,
 });
 //const isRecord = ref(false);
 const dialogVisible = ref(false);
+const captions = ref("");
+const transText = ref("");
 
 const MyReactComponent = applyReactInVue(myReactComponent);
 
@@ -360,6 +362,99 @@ const startAgent = async () => {
   // messageList.value[messageList.value.length-1].content+=res.data.data.session.messages[res.data.data.session.messages.length-1].content
   handleRender(decodeContent);
 };
+
+// 传递
+const stream = ref<MediaStream | null>(null);
+const audioContextRef = ref<AudioContext | null>(null);
+const processorRef = ref<ScriptProcessorNode | null>(null);
+const wsRef = ref<WebSocket | null>(null);
+
+// 初始化 AudioContext 和 ScriptProcessorNode
+onMounted(async () => {
+  try {
+    const mediaStream = await navigator.mediaDevices.getUserMedia({
+      audio: true,
+    });
+    console.log("获取到流");
+    stream.value = mediaStream;
+    console.log(stream.value.getAudioTracks());
+
+    // 确保 stream.value 赋值后再初始化 WebSocket
+    if (stream.value) {
+      const audioContext = new AudioContext({ sampleRate: 16000 });
+      const source = audioContext.createMediaStreamSource(stream.value);
+      const processor = audioContext.createScriptProcessor(4096, 1, 1);
+
+      processor.onaudioprocess = (event: AudioProcessingEvent) => {
+        const inputData = event.inputBuffer.getChannelData(0);
+        const pcmData = convertFloat32ToPCM(inputData);
+        if (wsRef.value && wsRef.value.readyState === WebSocket.OPEN) {
+          wsRef.value.send(pcmData);
+        }
+      };
+
+      source.connect(processor);
+      processor.connect(audioContext.destination);
+
+      audioContextRef.value = audioContext;
+      processorRef.value = processor;
+
+      // 初始化 WebSocket
+      wsRef.value = new WebSocket("ws://10.251.11.110:8765/");
+      wsRef.value.onopen = () => {
+        console.log("WebSocket 连接已建立");
+      };
+      wsRef.value.onmessage = (event: MessageEvent) => {
+        console.log(JSON.parse(event.data));
+
+        let data = JSON.parse(event.data);
+
+        if (data.action === "result" && meetingSettings.value.isCaptions) {
+          // 显示字幕
+          let content = JSON.parse(data.data);
+          captions.value = content.src;
+          if (meetingSettings.value.isTransition) transText.value = content.dst;
+
+          // captions.value += content.src ? content.src : "";
+          // if (meetingSettings.value.isTransition)
+          //   transText.value += content.dst ? content.dst : "";
+        }
+      };
+      wsRef.value.onerror = (error: Event) => {
+        console.error("WebSocket 错误:", error);
+      };
+      wsRef.value.onclose = () => {
+        console.log("WebSocket 连接已关闭");
+      };
+    }
+  } catch (error) {
+    if ((error as Error).name === "NotAllowedError") {
+      alert("请允许网站访问麦克风");
+    } else {
+      console.error("Error accessing microphone", error);
+    }
+  }
+});
+
+// 清理资源
+onUnmounted(() => {
+  if (wsRef.value) {
+    wsRef.value.close();
+  }
+  if (audioContextRef.value) {
+    audioContextRef.value.close();
+  }
+});
+
+// 将 Float32Array 转换为 16bit PCM
+const convertFloat32ToPCM = (input: Float32Array): Int16Array => {
+  const output = new Int16Array(input.length);
+  for (let i = 0; i < input.length; i++) {
+    const s = Math.max(-1, Math.min(1, input[i])); // 限制范围在 -1 到 1
+    output[i] = s < 0 ? s * 0x8000 : s * 0x7fff; // 转换为 16bit
+  }
+  return output;
+};
 </script>
 
 <style lang="scss" scoped>
@@ -380,6 +475,8 @@ const startAgent = async () => {
     bottom: 80px;
     width: 100vw;
     display: flex;
+    flex-direction: column;
+    align-items: center;
     justify-content: center;
 
     span {

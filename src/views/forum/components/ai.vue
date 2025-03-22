@@ -157,6 +157,7 @@ import { ElMessage } from "element-plus";
 import { fetchEventSource } from "@microsoft/fetch-event-source";
 
 import MarkdownIt from "markdown-it";
+import { SSEService } from "@/utils/sse";
 let md: MarkdownIt = new MarkdownIt();
 
 let scrollRef = ref();
@@ -333,45 +334,78 @@ const sendMessage = async () => {
 
   isLoading.value = true;
 
-  await fetchEventSource(
+  let sse = new SSEService();
+
+  sse.connect(
     getForumAIUrl(currentConversition.value!.id) +
       `?search_enabled=${isInternet.value}`,
+    "POST",
     {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json;charset=utf-8",
-      },
-      body: JSON.stringify({
-        query: sendText.value,
-        stream: true,
-        history: [],
-      }),
-      openWhenHidden: true,
-      async onopen() {},
-      onmessage(event) {
-        isLoading.value = false;
+      query: sendText.value,
+      stream: true,
+      history: [],
+    },
+    (event: any) => {
+      // 这里处理收到的消息
+      let data = JSON.parse(event.data);
+      console.log("收到SSE消息:", data);
+      isLoading.value = false;
+      if (data?.done) {
+        return;
+      }
 
-        let data = JSON.parse(event.data);
-        if (data?.done) {
-          return;
-        }
+      if (data?.content) {
+        let decodeContent = decodeUnicode(data!.content);
+        console.log(decodeContent);
 
-        if (data?.content) {
-          let decodeContent = decodeUnicode(data!.content);
-          console.log(decodeContent);
-
-          handleRender(decodeContent);
-        } else {
-          setTimeout(() => {
-            isLoading.value = false;
-          });
-        }
-      },
-      onerror(error) {
-        console.error("SSE 连接出错：", error);
-      },
+        handleRender(decodeContent);
+      } else {
+        setTimeout(() => {
+          isLoading.value = false;
+        });
+      }
     }
   );
+
+  // await fetchEventSource(
+  //   getForumAIUrl(currentConversition.value!.id) +
+  //     `?search_enabled=${isInternet.value}`,
+  //   {
+  //     method: "POST",
+  //     headers: {
+  //       "Content-Type": "application/json;charset=utf-8",
+  //     },
+  //     body: JSON.stringify({
+  //       query: sendText.value,
+  //       stream: true,
+  //       history: [],
+  //     }),
+  //     openWhenHidden: true,
+  //     async onopen() {},
+  //     onmessage(event) {
+  //       isLoading.value = false;
+
+  //       let data = JSON.parse(event.data);
+  //       if (data?.done) {
+  //         return;
+  //       }
+
+  //       if (data?.content) {
+  //         let decodeContent = decodeUnicode(data!.content);
+  //         console.log(decodeContent);
+
+  //         handleRender(decodeContent);
+  //       } else {
+  //         setTimeout(() => {
+  //           isLoading.value = false;
+  //         });
+  //       }
+  //     },
+  //     onerror(error) {
+  //       console.error("SSE 连接出错：", error);
+  //     },
+  //   }
+  // );
 
   sendText.value = "";
 };
