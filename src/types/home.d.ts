@@ -201,3 +201,15 @@ export type Meeting = {
 };
 
 export type MeetingList = Array<Meeting>;
+
+export type Schedule = {
+  meetingId: number;
+  url: string;
+  usercount: number;
+  title: string;
+  startTime: string;
+  duration: number;
+  status: number;
+};
+
+export type ScheduleList = Array<Schedule>;

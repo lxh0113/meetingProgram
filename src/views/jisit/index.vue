@@ -191,6 +191,10 @@ import type { UploadProps, UploadUserFile } from "element-plus";
 import { agentExecuteAPI, fileDownloadAPI } from "@/apis/ai/ai.ts";
 import { appKey, getSign } from "@/apis/ai/base.ts";
 import type { AgentMessageList } from "@/types/home";
+import { SSEService } from "@/utils/sse";
+import { v4 as uuidv4 } from "uuid";
+import { API_ENDPOINTS } from "@/apis/ai/aiSse";
+import { agentId, getHeaders } from "@/apis/ai/base";
 
 import MarkdownIt from "markdown-it";
 let md: MarkdownIt = new MarkdownIt();
@@ -243,20 +247,7 @@ const handleSuccess = (response: any) => {
   fileList.value[fileList.value.length - 1].url = response.data;
 };
 
-const header = ref({
-  appKey: appKey,
-  sign: "",
-});
-
 const aiGenerate = () => {};
-
-const start = async () => {
-  header.value.sign = await getSign();
-};
-
-onMounted(() => {
-  start();
-});
 
 // 关于智通会话的代码
 const sendText = ref("");
@@ -273,67 +264,12 @@ const messageList = ref<AgentMessageList>([
   },
 ]);
 
-// 解码包含Unicode转义序列的字符串
-function decodeUnicode(str: string) {
-  return str.replace(/\\u[\dA-Fa-f]{4}/g, function (match) {
-    return String.fromCharCode(parseInt(match.substr(2), 16));
-  });
-}
-
-let arry: string[] = []; // 存储待渲染的字符串
-let isRendering = false; // 标记是否正在渲染
-
-function handleRender(newText: string) {
-  arry.push(newText); // 将新内容添加到队列
-
-  // 如果当前没有正在渲染的任务，则开始渲染
-  if (!isRendering) {
-    renderNext();
-  }
-}
-
-/**
- * 逐步渲染队列中的文字内容
- */
-function renderNext() {
-  if (arry.length === 0) {
-    isRendering = false; // 如果没有更多内容，停止渲染
-    return;
-  }
-
-  isRendering = true; // 标记为正在渲染
-
-  const currentText = arry.shift()!; // 取出队列中的第一段文字
-  const chars = Array.from(currentText); // 将字符串拆分为字符数组
-  let index = 0; // 当前渲染的字符索引
-  const interval = 50; // 渲染间隔时间（毫秒）
-  const step = 3; // 每次渲染的字符数
-
-  // 使用 setInterval 逐步渲染
-  const timer = setInterval(() => {
-    if (index >= chars.length) {
-      // 如果当前字符串渲染完成，清除定时器并处理下一段文字
-      clearInterval(timer);
-      renderNext(); // 递归调用，处理下一段文字
-      return;
-    }
-
-    // 每次渲染 step 个字符
-    const chunk = chars.slice(index, index + step).join("");
-    // console.log(chunk); // 这里可以替换为实际的 UI 更新逻辑
-    setTimeout(() => {
-      messageList.value[messageList.value.length - 1].content += chunk;
-    });
-    index += step; // 更新索引
-  }, interval);
-}
+let header = ref({});
 
 const startAgent = async () => {
   //设置isloading
 
   isLoading.value = true;
-
-  let str = sendText.value;
 
   messageList.value.push({
     role: "user",
@@ -346,22 +282,36 @@ const startAgent = async () => {
 
   sendText.value = "";
 
-  const res = await agentExecuteAPI(str);
+  const sse = new SSEService();
 
-  isLoading.value = false;
+  sse.connect(
+    API_ENDPOINTS.EXECUTE,
+    "POST",
+    {
+      sid: uuidv4(),
+      id: agentId,
+      input: sendText.value,
+      stream: true,
+    },
+    (event) => {
+     
+      // console.log(event)
+      isLoading.value = false;
 
-  console.log(
-    res.data.data.session.messages[res.data.data.session.messages.length - 1]
-      .content
+      // console.log(event.data);
+      let data = JSON.parse(event.data);
+      console.log(data);
+
+      messageList.value[messageList.value.length - 1].content +=
+        data.data.content || "";
+    },
+    header.value
   );
-
-  let decodeContent = decodeUnicode(
-    res.data.data.session.messages[res.data.data.session.messages.length - 1]
-      .content
-  );
-  // messageList.value[messageList.value.length-1].content+=res.data.data.session.messages[res.data.data.session.messages.length-1].content
-  handleRender(decodeContent);
 };
+
+onMounted(async () => {
+  header.value = await getHeaders();
+});
 
 // 传递
 const stream = ref<MediaStream | null>(null);

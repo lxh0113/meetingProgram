@@ -12,17 +12,17 @@ const router = createRouter({
       component: () => import("../views/register/index.vue"),
     },
     {
-      path:"/jisit/:id",
-      component:()=>import("../views/jisit/index.vue")
+      path: "/jisit/:id",
+      component: () => import("../views/jisit/index.vue"),
     },
     {
-      path:"/map",
-      component:()=>import("../views/components/Map.vue")
+      path: "/history/:url",
+      component: () => import("../views/user/components/history.vue"),
     },
     {
       path: "/back",
       component: () => import("../views/back/index.vue"),
-      redirect:"/back/user",
+      redirect: "/back/user",
       children: [
         {
           path: "user",
@@ -65,7 +65,8 @@ const router = createRouter({
             },
             {
               path: "rank",
-              component: () => import("../views/forum/components/Rank.vue") },
+              component: () => import("../views/forum/components/Rank.vue"),
+            },
             {
               path: "publish/:id",
               component: () =>

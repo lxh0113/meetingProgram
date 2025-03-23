@@ -213,7 +213,11 @@ import { ElMessage, ElMessageBox } from "element-plus";
 import type { UploadProps, UploadUserFile } from "element-plus";
 import type { MeetingSettings, MeetingSetting } from "@/types/home";
 import { useMeetingStore } from "@/stores/meetingStore";
-import { createMeetingAPI, quicklyMeetingAPI } from "@/apis/meeting";
+import {
+  createMeetingAPI,
+  joinMeetingAPI,
+  quicklyMeetingAPI,
+} from "@/apis/meeting";
 import { useUserStore } from "@/stores/userStore";
 
 const router = useRouter();
@@ -288,9 +292,22 @@ const toConfirm = async () => {
   switch (status.value) {
     case 1:
       {
-        console.log(addFormData.value);
-        meetingStore.setMeetingSetting(addFormData.value);
-        router.push("/jisit/" + addFormData.value.id);
+        // console.log(addFormData.value);
+        // meetingStore.setMeetingSetting(addFormData.value);
+        // router.push("/jisit/" + addFormData.value.id);
+
+        // 加入会议
+        const res = await joinMeetingAPI(
+          userStore.user.id,
+          addFormData.value.id!
+        );
+
+        if (res.data.code === 200) {
+          meetingStore.setMeetingSetting(addFormData.value);
+          router.push("/jisit/" + addFormData.value.id);
+        } else {
+          ElMessage.error(res.data.message);
+        }
       }
       break;
     case 2:

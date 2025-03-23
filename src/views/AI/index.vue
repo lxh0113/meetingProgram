@@ -9,22 +9,48 @@
           v-for="(item, index) in messageList"
           :class="item.role === 'assistant' ? 'aiMessage' : 'myMessage'"
         >
+          <img
+            v-if="item.role === 'assistant'"
+            style="width: 50px; height: 50px; margin-right: 20px"
+            src="../../assets/img/logo.png"
+            alt=""
+          />
           <div
-            v-if="isLoading && index === messageList.length - 1"
-            class="message"
+            style="
+              display: flex;
+              flex-direction: column;
+              align-items: flex-start;
+            "
           >
-            <img
-              style="
-                padding: 0 10px;
-                width: 20px;
-                height: 20px;
-                transform: scale(3) translateY(2px);
-              "
-              src="../../assets/loading.gif"
-              alt=""
-            />
+            <div
+              v-if="isLoading && index === messageList.length - 1"
+              class="message"
+            >
+              <img
+                style="
+                  padding: 0 10px;
+                  width: 20px;
+                  height: 20px;
+                  transform: scale(3) translateY(2px);
+                "
+                src="../../assets/loading.gif"
+                alt=""
+              />
+            </div>
+            <div v-else class="message" v-html="md.render(item.content)"></div>
+            <div
+              v-if="item.role === 'assistant' && resumeList.length"
+              class="resume"
+            >
+              <p v-for="i in resumeList" @click="toAsk(i)">
+                <img
+                  style="width: 30px; height: 30px"
+                  src="../../assets/img/ai.gif"
+                  alt=""
+                />{{ i }}
+              </p>
+            </div>
           </div>
-          <div v-else class="message" v-html="md.render(item.content)"></div>
         </div>
       </el-scrollbar>
       <div class="inputBox">
@@ -35,32 +61,125 @@
           v-model="input"
           placeholder="请输入你的问题..."
         />
-        <button @click="startAgent">提问</button>
+        <button @click="chooseAsk">{{ buttonText[choose] }}</button>
+        <el-popover placement="top" :width="500" trigger="click">
+          <template #reference>
+            <button>更多操作</button>
+          </template>
+          <div>
+            <el-form ref="form" :model="form" label-width="80px">
+              <el-form-item label="文章上传">
+                <el-upload
+                  ref="upload"
+                  class="upload-demo"
+                  action="/open/api/v2/document/upload"
+                  :limit="10"
+                  :headers="header"
+                  :data="{
+                    sourceId: userStore.user.id,
+                    fileId: uuidv4(),
+                  }"
+                >
+                  <el-button type="primary">上传文件</el-button>
+                  <el-button type="success" @click.stop="searchFile"
+                    >查询以往上传文件</el-button
+                  >
+                  <template #tip>
+                    <div class="el-upload__tip">
+                      ⽀持doc、docx、pdf、json、txt、xls、xlsx、ppt、pptx格式⽂件
+                    </div>
+                  </template>
+                </el-upload>
+              </el-form-item>
+              <el-form-item label="问答形式">
+                <el-select v-model="choose" style="width: 200px" placeholder="">
+                  <el-option label="提问" value="ask" />
+                  <el-option label="检索原文" value="search" />
+                  <el-option label="检索问答" value="chat" />
+                  <el-option label="文档创作" value="creation" />
+                  <el-option label="文档翻译" value="trans" />
+                </el-select>
+              </el-form-item>
+            </el-form>
+          </div>
+        </el-popover>
       </div>
     </div>
-    <div class="right">
-      <div class="contentBox"></div>
+    <div v-if="rightShow" class="right">
+      <div class="contentBox">
+        <el-table :data="fileTableData" style="width: 100%" height="500">
+          <el-table-column prop="filename" label="文件名称" />
+          <el-table-column prop="updateTs" label="上传时间" />
+          <el-table-column label="文件大小">
+            <template #default="scope">
+              {{ formatFileSize(scope.row.fileSize) }}
+            </template>
+          </el-table-column>
+          <el-table-column label="下载">
+            <template #default="scope">
+              <el-button
+                type="primary"
+                plain
+                text
+                @click="downloadFile(scope.row.fileId)"
+                >下载</el-button
+              >
+              <el-button
+                type="danger"
+                plain
+                text
+                @click="deleteFile(scope.row.fileId)"
+                >删除</el-button
+              >
+            </template>
+          </el-table-column>
+        </el-table>
+      </div>
     </div>
   </div>
 </template>
 
 <script lang="ts" setup>
-import { agentExecuteAPI, getAiBaseURL } from "@/apis/ai/ai";
-import { fetchEventSource } from "@microsoft/fetch-event-source";
 import { onMounted, ref } from "vue";
-import {
-  appKey,
-  getSign,
-  agentId,
-  getHeaders,
-} from "../../apis/ai/base";
+import { agentId, getHeaders } from "../../apis/ai/base";
 import { v4 as uuidv4 } from "uuid";
 import type { AgentMessageList } from "@/types/home";
+import {
+  ElMessage,
+  type UploadInstance,
+  type UploadProps,
+  type UploadRawFile,
+} from "element-plus";
 
 import MarkdownIt from "markdown-it";
 import { SSEService } from "@/utils/sse";
 import { API_ENDPOINTS } from "@/apis/ai/aiSse";
+import { DOCUMENT_ENDPOINTS } from "@/apis/ai/pluginsSse";
+import {
+  documentDeleteAPI,
+  documentInternalDownloadAPI,
+  documentMetadataPageQueryAPI,
+  documentMetadataQueryAPI,
+  documentSearchAPI,
+} from "@/apis/ai/plugins";
+import { useUserStore } from "@/stores/userStore";
+import { agentResumeAPI } from "@/apis/ai/ai";
 let md: MarkdownIt = new MarkdownIt();
+
+const resumeList = ref<string[]>([]);
+
+const userStore = useUserStore();
+const choose = ref<string>("ask");
+const buttonText = ref<Record<string, string>>({
+  ask: "提问",
+  search: "检索全文",
+  chat: "检索问答",
+  creation: "文档创作",
+  trans: "文档翻译",
+});
+const form = ref({});
+
+const upload = ref<UploadInstance>();
 
 const messageList = ref<AgentMessageList>([
   {
@@ -73,72 +192,55 @@ const messageList = ref<AgentMessageList>([
   },
 ]);
 
+const rightShow = ref(false);
+
 const input = ref("请问如何学习");
 const isLoading = ref(false);
 
-// 解码包含Unicode转义序列的字符串
-function decodeUnicode(str: string) {
-  return str.replace(/\\u[\dA-Fa-f]{4}/g, function (match) {
-    return String.fromCharCode(parseInt(match.substr(2), 16));
-  });
-}
+let header = {};
 
-let arry: string[] = []; // 存储待渲染的字符串
-let isRendering = false; // 标记是否正在渲染
-
-function handleRender(newText: string) {
-  arry.push(newText); // 将新内容添加到队列
-
-  // 如果当前没有正在渲染的任务，则开始渲染
-  if (!isRendering) {
-    renderNext();
+// 根据情况问答
+const chooseAsk = async () => {
+  preStart();
+  switch (choose.value) {
+    case "ask":
+      startAgent();
+      break;
+    case "search":
+      startSearch();
+      break;
+    case "chat":
+      startChat();
+      break;
+    case "creation":
+      startCreation();
+      break;
+    case "trans":
+      startTrans();
+      break;
   }
-}
 
-/**
- * 逐步渲染队列中的文字内容
- */
-function renderNext() {
-  if (arry.length === 0) {
-    isRendering = false; // 如果没有更多内容，停止渲染
+  isLoading.value = false;
+
+  // const res = await agentResumeAPI(uuidv4(), input.value);
+
+  // if (res.data.code === 0) {
+  //   console.log(res.data.data)
+  //   // resumeList.value=res.data.
+  // } else {
+  //   ElMessage.error(res.data.msg);
+  // }
+
+  input.value = "";
+};
+
+const preStart = () => {
+  if (input.value.trim() === "") {
+    ElMessage.error("您并未写入任何内容");
     return;
   }
 
-  isRendering = true; // 标记为正在渲染
-
-  const currentText = arry.shift()!; // 取出队列中的第一段文字
-  const chars = Array.from(currentText); // 将字符串拆分为字符数组
-  let index = 0; // 当前渲染的字符索引
-  const interval = 50; // 渲染间隔时间（毫秒）
-  const step = 3; // 每次渲染的字符数
-
-  // 使用 setInterval 逐步渲染
-  const timer = setInterval(() => {
-    if (index >= chars.length) {
-      // 如果当前字符串渲染完成，清除定时器并处理下一段文字
-      clearInterval(timer);
-      renderNext(); // 递归调用，处理下一段文字
-      return;
-    }
-
-    // 每次渲染 step 个字符
-    const chunk = chars.slice(index, index + step).join("");
-    // console.log(chunk); // 这里可以替换为实际的 UI 更新逻辑
-    setTimeout(() => {
-      messageList.value[messageList.value.length - 1].content += chunk;
-    });
-    index += step; // 更新索引
-  }, interval);
-}
-
-let header={}
-
-const startAgent = async () => {
-  //设置isloading
-
   isLoading.value = true;
-
-  let str = input.value;
 
   messageList.value.push({
     role: "user",
@@ -148,7 +250,10 @@ const startAgent = async () => {
     role: "assistant",
     content: "",
   });
+};
 
+// 普通问答
+const startAgent = async () => {
   const sse = new SSEService();
 
   sse.connect(
@@ -163,33 +268,180 @@ const startAgent = async () => {
     (event) => {
       // input.value = "";
       // console.log(event)
-      console.log(event.data);
-      console.log(JSON.parse(event.data))
+      isLoading.value = false;
+
+      // console.log(event.data);
+      let data = JSON.parse(event.data);
+      console.log(data);
+
+      messageList.value[messageList.value.length - 1].content +=
+        data.data.content || "";
     },
     header
   );
-
-  // input.value = "";
-
-  // const res = await agentExecuteAPI(str);
-
-  // isLoading.value = false;
-
-  // console.log(
-  //   res.data.data.session.messages[res.data.data.session.messages.length - 1]
-  //     .content
-  // );
-
-  // let decodeContent = decodeUnicode(
-  //   res.data.data.session.messages[res.data.data.session.messages.length - 1]
-  //     .content
-  // );
-  // // messageList.value[messageList.value.length-1].content+=res.data.data.session.messages[res.data.data.session.messages.length-1].content
-  // handleRender(decodeContent);
 };
 
-onMounted(async() => {
-  header=await getHeaders()
+// 检索全文
+const startSearch = async () => {
+  const res = await documentSearchAPI(input.value);
+
+  if (res.data.code === 0) {
+    console.log(res.data.data);
+  }
+};
+
+// 检索问答
+const startChat = async () => {
+  const sse = new SSEService();
+
+  sse.connect(
+    DOCUMENT_ENDPOINTS.DOCUMENT_CHAT,
+    "POST",
+    {
+      query: input.value,
+      stream: true,
+      owner: "admin",
+      labels: [],
+      permissions: ["111"],
+    },
+    (event) => {
+      isLoading.value = false;
+
+      // console.log(event.data);
+      let data = JSON.parse(event.data);
+      console.log(data);
+
+      messageList.value[messageList.value.length - 1].content +=
+        data.data.content || "";
+    },
+    header
+  );
+};
+
+// 文档创作
+const startCreation = async () => {
+  const sse = new SSEService();
+
+  sse.connect(
+    DOCUMENT_ENDPOINTS.DOCUMENT_CREATION,
+    "POST",
+    {
+      sid: uuidv4(),
+      prompt:
+        "你是文档专家，可以根据对应要求整理成一个规范，包含标题、段落、总结的文档",
+      stream: true,
+      chunks: [input.value],
+    },
+    (event) => {
+      isLoading.value = false;
+
+      // console.log(event.data);
+      let data = JSON.parse(event.data);
+      console.log(data);
+
+      messageList.value[messageList.value.length - 1].content +=
+        data.data.content || "";
+    },
+    header
+  );
+};
+
+// 文档翻译
+const startTrans = async () => {
+  const sse = new SSEService();
+
+  sse.connect(
+    DOCUMENT_ENDPOINTS.DOCUMENT_TRANSLATE,
+    "POST",
+    {
+      sid: uuidv4(),
+      content: input.value,
+      translate: "en",
+      stream: true,
+    },
+    (event) => {
+      isLoading.value = false;
+
+      // console.log(event.data);
+      let data = JSON.parse(event.data);
+      console.log(data);
+
+      messageList.value[messageList.value.length - 1].content =
+        data.data.transContent || "";
+    },
+    header
+  );
+};
+
+const filePageData = ref({
+  current: 1,
+  size: 10,
+});
+
+const fileTableData = ref([]);
+
+const searchFile = async () => {
+  rightShow.value = true;
+
+  const res = await documentMetadataPageQueryAPI(
+    filePageData.value.current,
+    filePageData.value.size
+  );
+
+  if (res.data.code === 0) {
+    console.log(res.data.data);
+    fileTableData.value = res.data.data.data;
+  } else {
+    ElMessage.error(res.data.msg);
+  }
+};
+
+const formatFileSize = (bytes: any) => {
+  if (typeof bytes !== "number") bytes = Number(bytes);
+  if (isNaN(bytes)) return "-";
+
+  const units = ["B", "KB", "MB", "GB", "TB"];
+  let unitIndex = 0;
+
+  while (bytes >= 1024 && unitIndex < units.length - 1) {
+    bytes /= 1024;
+    unitIndex++;
+  }
+
+  return `${bytes.toLocaleString(undefined, { maximumFractionDigits: 2 })} ${
+    units[unitIndex]
+  }`;
+};
+
+const downloadFile = async (id: string) => {
+  const res = await documentInternalDownloadAPI(id);
+
+  if (res.data.code === 0) {
+    console.log(res.data.data);
+  } else {
+    ElMessage.error(res.data.msg);
+  }
+};
+
+const deleteFile = async (id: string) => {
+  const res = await documentDeleteAPI(userStore.user.id + "", id);
+
+  if (res.data.code === 0) {
+    ElMessage.success("删除成功");
+    searchFile();
+  } else {
+    ElMessage.error(res.data.msg);
+  }
+};
+
+const toAsk = (str: string) => {
+  input.value = str;
+
+  chooseAsk();
+};
+
+onMounted(async () => {
+  header = await getHeaders();
 });
 </script>
 
@@ -217,7 +469,6 @@ onMounted(async() => {
       }
 
       .message {
-        // flex: 1;
         background: rgba(255, 255, 255, 1);
         // border: 1px solid $primary-border-color;
         background-color: $primary-message-background-color;
@@ -225,6 +476,27 @@ onMounted(async() => {
         padding: 20px;
         border-radius: 20px 20px 20px 0px;
         //   border:1px solid $primary-border-color;
+      }
+
+      .resume {
+        box-sizing: border-box;
+        margin-top: 5px;
+        line-height: 30px;
+        font-size: small;
+
+        p {
+          background-color: $primary-message-background-color;
+          box-sizing: border-box;
+          padding: 5px 10px;
+          margin-top: 5px;
+          border-radius: 10px 10px 10px 0;
+          display: flex;
+          align-items: center;
+
+          img {
+            margin-right: 10px;
+          }
+        }
       }
     }
 
@@ -246,7 +518,7 @@ onMounted(async() => {
 
     .inputBox {
       display: flex;
-      margin-left: 70px;
+      margin-left: 30px;
       margin-right: 60px;
 
       button {
@@ -296,7 +568,7 @@ onMounted(async() => {
   }
 
   .right {
-    width: 520px;
+    width: 540px;
     margin-right: 20px;
 
     .contentBox {
@@ -307,6 +579,7 @@ onMounted(async() => {
       border-radius: 20px;
       box-sizing: border-box;
       padding: 20px;
+      max-height: calc(100vh - 200px);
     }
   }
 }

@@ -18,7 +18,10 @@
       class="el-menu-vertical-demo"
       router
     >
-      <el-menu-item v-for="(item, index) in props.nav" :index="item.path">
+      <el-menu-item
+        v-for="(item, index) in props.nav"
+        :index="item.path"
+      >
         <span
           style="margin-left: 20px; margin-right: 10px"
           :class="'iconfont icon-' + item.icon"
@@ -32,6 +35,8 @@
 
 <script lang="ts" setup>
 import type { NavList } from "@/types/home";
+import { onMounted } from "vue";
+import { useRoute } from "vue-router";
 
 const props = withDefaults(
   defineProps<{
@@ -39,6 +44,21 @@ const props = withDefaults(
   }>(),
   {}
 );
+
+const route = useRoute();
+
+const getDefaultIndex = (path: string) => {
+  let current = route.path.slice(1);
+  // console.log(current.slice(1));
+
+  let paths = path.split("/");
+
+  if (paths[0] === current) return true;
+
+  return false;
+};
+
+onMounted(() => {});
 </script>
 
 <style lang="scss" scoped>
@@ -54,6 +74,14 @@ const props = withDefaults(
 
   .el-menu-item {
     color: $primary-gray-text-color;
+  }
+
+  .active {
+    border: 0;
+    background-color: $primary-background-color;
+    color: $primary-color;
+    border-radius: 5px;
+    font-weight: bold;
   }
 
   //设置当前被选中的一级菜单

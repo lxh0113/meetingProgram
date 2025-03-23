@@ -10,7 +10,7 @@
         <span>获赞 {{ userData.likeCount }}+</span>
       </div>
     </div>
-    <div class="right">
+    <div class="center">
       <div class="title">个人信息</div>
       <el-form label-position="top">
         <div class="avatar">
@@ -79,6 +79,21 @@
         </div>
       </el-form>
     </div>
+    <div class="right">
+      <span class="title">历史会议</span>
+      <el-table :data="tableData" style="width: 100%">
+        <el-table-column prop="id" label="会议编号" />
+        <el-table-column prop="title" label="会议主题" />
+        <el-table-column prop="creator" label="创建人" />
+        <el-table-column label="操作">
+          <template #default="scope">
+            <el-button type="primary" text @click="toView(scope.row.url)"
+              >查看</el-button
+            >
+          </template>
+        </el-table-column>
+      </el-table>
+    </div>
   </div>
 </template>
 
@@ -93,6 +108,7 @@ import type { UserInfo } from "@/types/home";
 import { baseUrl } from "@/utils/baseUrl";
 import { sendVerificationCodeAPI } from "@/apis/email";
 import { emailRegexp } from "@/utils/regexp";
+import { getHistoryMeetingAPI } from "@/apis/meeting";
 
 const newPassword = ref("");
 const userData = ref<UserInfo>({
@@ -210,8 +226,28 @@ const submit = async () => {
   }
 };
 
+// 历史会议
+
+const tableData = ref([]);
+
+const getHistoryMeetings = async () => {
+  const res = await getHistoryMeetingAPI(userStore.user.id);
+
+  if (res.data.code === 200) {
+    tableData.value = res.data.data;
+  } else {
+    ElMessage.error(res.data.message);
+  }
+};
+
+const toView = (url: string) => {
+  const encodedPath = encodeURIComponent(encodeURIComponent(url));
+  window.open("/history/" + encodedPath);
+};
+
 onMounted(() => {
   getUserInfo();
+  getHistoryMeetings();
 });
 </script>
 
@@ -252,7 +288,7 @@ onMounted(() => {
     }
   }
 
-  > .right {
+  > .center {
     width: 600px;
     height: 620px;
     margin-left: 20px;
@@ -262,12 +298,28 @@ onMounted(() => {
     padding: 20px;
     box-sizing: border-box;
 
-    .title {
+    > .title {
       margin-bottom: 10px;
     }
 
     .twoInput {
       display: flex;
+    }
+  }
+
+  > .right {
+    flex: 1;
+    margin-left: 20px;
+    border: 1px solid $primary-border-color;
+    border-radius: 10px;
+    box-shadow: rgba(17, 17, 26, 0.1) 0px 0px 16px;
+    padding: 20px;
+    box-sizing: border-box;
+
+    > .title {
+      color: $primary-color;
+      font-weight: bold;
+      margin-bottom: 20px;
     }
   }
 }

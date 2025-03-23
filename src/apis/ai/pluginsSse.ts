@@ -1,5 +1,5 @@
 // document-urls.ts
-const API_BASE_URL = "https://www.das-ai.com/dasChat";
+const API_BASE_URL = "";
 
 export const DOCUMENT_ENDPOINTS = {
   /** 文件预处理 */

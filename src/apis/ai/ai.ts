@@ -1,5 +1,4 @@
 import axios from "axios";
-import http from "../../utils/http";
 
 import { appKey, getSign, agentId } from "./base";
 import { v4 as uuidv4 } from "uuid";
@@ -99,9 +98,15 @@ export const taskMessagesAPI = () => {
 };
 
 // 智能体交互回答
-export const agentResumeAPI = () => {
+export const agentResumeAPI = (messageId: string, input: string) => {
   return axios({
     url: `${API_BASE_URL}/agent/execute/resume`,
+    method: "POST",
+    data: {
+      messageId,
+      input,
+      principle: "user",
+    },
   });
 };
 
