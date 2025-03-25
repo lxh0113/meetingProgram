@@ -154,8 +154,6 @@ import { ref, watch } from "vue";
 import SearchItem from "@/components/SearchItem.vue";
 import { getForumAIUrl } from "@/utils/baseUrl";
 import { ElMessage } from "element-plus";
-import { fetchEventSource } from "@microsoft/fetch-event-source";
-
 import MarkdownIt from "markdown-it";
 import { SSEService } from "@/utils/sse";
 let md: MarkdownIt = new MarkdownIt();

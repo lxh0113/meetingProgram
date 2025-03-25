@@ -10,7 +10,7 @@ export class SSEService {
     method: "GET" | "POST",
     body: object,
     onMessageHandler: MessageHandler,
-    myHeader?: Record<string, string> // 改为可选参数并用更精确的类型
+    myHeader?: Record<string, string> // 键值对的形式
   ) {
     return await fetchEventSource(url, {
       method: method,
@@ -28,10 +28,12 @@ export class SSEService {
       },
       onerror(error) {
         ElMessage.error("SSE连接出错: " + error);
-        close();
-        // 可以考虑抛出错误让外部处理
-        throw error;
       },
+      onclose(){
+
+      }
     });
   }
 }
+
+

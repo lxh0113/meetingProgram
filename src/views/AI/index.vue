@@ -159,11 +159,9 @@ import {
   documentDeleteAPI,
   documentInternalDownloadAPI,
   documentMetadataPageQueryAPI,
-  documentMetadataQueryAPI,
   documentSearchAPI,
 } from "@/apis/ai/plugins";
 import { useUserStore } from "@/stores/userStore";
-import { agentResumeAPI } from "@/apis/ai/ai";
 let md: MarkdownIt = new MarkdownIt();
 
 const resumeList = ref<string[]>([]);
