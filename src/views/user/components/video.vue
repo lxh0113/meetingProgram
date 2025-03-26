@@ -6,15 +6,18 @@
       ref="videoRef"
       :src="src"
       class="video-js w-full h-full"
+      playsinline
+      webkit-playsinline
+      x5-playsinline
     >
-      <source :src="src" />
-      <!-- <track default kind="captions" srclang='en' /> -->
+      <source :src="src"  type="video/mp4" />
+      <track default kind="captions" srclang="en" :src="currentTrackUrl" />
     </video>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, type CSSProperties, onMounted, ref,watch } from "vue";
+import { computed, type CSSProperties, onMounted, ref, watch } from "vue";
 import videojs from "video.js";
 // import type { VideoJsPlayerOptions } from "video.js";
 import "video.js/dist/video-js.min.css";
@@ -23,9 +26,11 @@ type MyVideoProps = {
   src: string;
   width?: string;
   height?: string;
+  startTime?: number;
+  trackUrl?: string;
 };
 const props = withDefaults(defineProps<MyVideoProps>(), {
-  src:''
+  startTime: 0,
 });
 // video标签
 const videoRef = ref<HTMLElement | null>(null);
@@ -56,14 +61,41 @@ const initVideo = () => {
   }
 };
 
-watch(()=>props.src,(newValue)=>{
-  initVideo()
-})
+watch(
+  () => props.startTime,
+  (newValue) => {
+    console.log(newValue);
+    videoRef.value.currentTime = newValue;
+  }
+);
+
+const currentTrackUrl = ref("");
+const visiable = ref(true);
+
+watch(
+  () => props.trackUrl,
+  (newValue) => {
+    visiable.value = false;
+    console.log(newValue);
+
+    // alert(21)
+    // currentTrackUrl.value = newValue;
+
+    setTimeout(() => {
+      visiable.value = true;
+    }, 200);
+  },
+  {
+    immediate: true,
+  }
+);
 
 // video初始化完成的回调函数
 const onPlayerReady = () => {};
 onMounted(() => {
   initVideo();
+
+  console.log(props.trackUrl);
 });
 </script>
 

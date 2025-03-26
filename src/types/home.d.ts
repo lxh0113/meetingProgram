@@ -213,3 +213,10 @@ export type Schedule = {
 };
 
 export type ScheduleList = Array<Schedule>;
+
+export type Knowledge = {
+  startTime: string;
+  text: string;
+};
+
+export type KnowledgeList = Array<Knowledge>;

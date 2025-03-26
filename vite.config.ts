@@ -50,7 +50,11 @@ export default defineConfig({
     proxy: {
       // 字符串简写写法：http://localhost:5173/oauth -> https://aip.baidubce.com/oauth
       "/open/api/v2": "https://www.das-ai.com",
-      "/dasChat": "https://www.das-ai.com/dasChat"
+      "/dasChat": "https://www.das-ai.com/dasChat",
+      // "/rag": {
+      //   target:"http://10.251.39.158:8000/",
+      //   rewrite:(path)=>path.replace(/^\/rag/, "")
+      // }
     },
   },
 });

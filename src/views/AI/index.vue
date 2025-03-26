@@ -15,30 +15,30 @@
             src="../../assets/img/logo.png"
             alt=""
           />
-          <div
+          <!-- <div
             style="
               display: flex;
               flex-direction: column;
               align-items: flex-start;
             "
+          > -->
+          <div
+            v-if="isLoading && index === messageList.length - 1"
+            class="message"
           >
-            <div
-              v-if="isLoading && index === messageList.length - 1"
-              class="message"
-            >
-              <img
-                style="
-                  padding: 0 10px;
-                  width: 20px;
-                  height: 20px;
-                  transform: scale(3) translateY(2px);
-                "
-                src="../../assets/loading.gif"
-                alt=""
-              />
-            </div>
-            <div v-else class="message" v-html="md.render(item.content)"></div>
-            <div
+            <img
+              style="
+                padding: 0 10px;
+                width: 20px;
+                height: 20px;
+                transform: scale(3) translateY(2px);
+              "
+              src="../../assets/loading.gif"
+              alt=""
+            />
+          </div>
+          <div v-else class="message" v-html="md.render(item.content)"></div>
+          <!-- <div
               v-if="item.role === 'assistant' && resumeList.length"
               class="resume"
             >
@@ -49,8 +49,8 @@
                   alt=""
                 />{{ i }}
               </p>
-            </div>
-          </div>
+            </div> -->
+          <!-- </div> -->
         </div>
       </el-scrollbar>
       <div class="inputBox">
@@ -72,21 +72,20 @@
                 <el-upload
                   ref="upload"
                   class="upload-demo"
-                  action="/open/api/v2/document/upload"
+                  action="/rag/upload"
                   :limit="10"
                   :headers="header"
                   :data="{
-                    sourceId: userStore.user.id,
-                    fileId: uuidv4(),
+                    process_now: true,
                   }"
                 >
                   <el-button type="primary">上传文件</el-button>
-                  <el-button type="success" @click.stop="searchFile"
+                  <!-- <el-button type="success" @click.stop="searchFile"
                     >查询以往上传文件</el-button
-                  >
+                  > -->
                   <template #tip>
                     <div class="el-upload__tip">
-                      ⽀持doc、docx、pdf、json、txt、xls、xlsx、ppt、pptx格式⽂件
+                      ⽀持doc、docx、pdf、txt格式⽂件
                     </div>
                   </template>
                 </el-upload>
@@ -94,8 +93,10 @@
               <el-form-item label="问答形式">
                 <el-select v-model="choose" style="width: 200px" placeholder="">
                   <el-option label="提问" value="ask" />
-                  <el-option label="检索原文" value="search" />
-                  <el-option label="检索问答" value="chat" />
+                  <el-option label="检索问答" value="rag" />
+
+                  <!-- <el-option label="检索原文" value="search" />
+                  <el-option label="检索问答" value="chat" /> -->
                   <el-option label="文档创作" value="creation" />
                   <el-option label="文档翻译" value="trans" />
                 </el-select>
@@ -162,6 +163,8 @@ import {
   documentSearchAPI,
 } from "@/apis/ai/plugins";
 import { useUserStore } from "@/stores/userStore";
+import { isHealthAPI, queryDocAPI } from "@/apis/rag";
+import { nextTick } from "vue";
 let md: MarkdownIt = new MarkdownIt();
 
 const resumeList = ref<string[]>([]);
@@ -170,6 +173,7 @@ const userStore = useUserStore();
 const choose = ref<string>("ask");
 const buttonText = ref<Record<string, string>>({
   ask: "提问",
+  rag: "检索问答",
   search: "检索全文",
   chat: "检索问答",
   creation: "文档创作",
@@ -200,9 +204,13 @@ let header = {};
 // 根据情况问答
 const chooseAsk = async () => {
   preStart();
+
   switch (choose.value) {
     case "ask":
       startAgent();
+      break;
+    case "rag":
+      startRag();
       break;
     case "search":
       startSearch();
@@ -218,8 +226,6 @@ const chooseAsk = async () => {
       break;
   }
 
-  isLoading.value = false;
-
   // const res = await agentResumeAPI(uuidv4(), input.value);
 
   // if (res.data.code === 0) {
@@ -228,8 +234,6 @@ const chooseAsk = async () => {
   // } else {
   //   ElMessage.error(res.data.msg);
   // }
-
-  input.value = "";
 };
 
 const preStart = () => {
@@ -248,7 +252,58 @@ const preStart = () => {
     role: "assistant",
     content: "",
   });
+
+  console.log(isLoading.value);
 };
+
+// 处理渲染逻辑
+let arry: string[] = []; // 存储待渲染的字符串
+let isRendering = false; // 标记是否正在渲染
+
+function handleRender(newText: string) {
+  arry.push(newText); // 将新内容添加到队列
+
+  // 如果当前没有正在渲染的任务，则开始渲染
+  if (!isRendering) {
+    renderNext();
+  }
+}
+
+/**
+ * 逐步渲染队列中的文字内容
+ */
+function renderNext() {
+  if (arry.length === 0) {
+    isRendering = false; // 如果没有更多内容，停止渲染
+    return;
+  }
+
+  isRendering = true; // 标记为正在渲染
+
+  const currentText = arry.shift()!; // 取出队列中的第一段文字
+  const chars = Array.from(currentText); // 将字符串拆分为字符数组
+  let index = 0; // 当前渲染的字符索引
+  const interval = 50; // 渲染间隔时间（毫秒）
+  const step = 3; // 每次渲染的字符数
+
+  // 使用 setInterval 逐步渲染
+  const timer = setInterval(() => {
+    if (index >= chars.length) {
+      // 如果当前字符串渲染完成，清除定时器并处理下一段文字
+      clearInterval(timer);
+      renderNext(); // 递归调用，处理下一段文字
+      return;
+    }
+
+    // 每次渲染 step 个字符
+    const chunk = chars.slice(index, index + step).join("");
+    // console.log(chunk); // 这里可以替换为实际的 UI 更新逻辑
+    setTimeout(() => {
+      messageList.value[messageList.value.length - 1].content += chunk;
+    });
+    index += step; // 更新索引
+  }, interval);
+}
 
 // 普通问答
 const startAgent = async () => {
@@ -270,13 +325,48 @@ const startAgent = async () => {
 
       // console.log(event.data);
       let data = JSON.parse(event.data);
-      console.log(data);
+      // console.log(data);
 
       messageList.value[messageList.value.length - 1].content +=
         data.data.content || "";
     },
     header
   );
+};
+
+const isHealth = async () => {
+  const res = await isHealthAPI();
+
+  if (res.data.status === "healthy") {
+    return true;
+  } else {
+    ElMessage.error("服务器繁忙，请稍后重试");
+    choose.value = "ask";
+
+    return false;
+  }
+};
+
+const startRag = async () => {
+  // const flag = await isHealth();
+
+  // if (!flag) return;
+
+  // 开始检索问答
+
+  // isLoading.value = true;
+
+  const res = await queryDocAPI(input.value);
+  console.log(res);
+  if (res.status === 200) {
+    isLoading.value=false
+    console.log(res);
+
+    handleRender(res.data.answer);
+  } else {
+    ElMessage.error("服务器繁忙，请稍后重试");
+    choose.value = "ask";
+  }
 };
 
 // 检索全文

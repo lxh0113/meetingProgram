@@ -1,11 +1,25 @@
 <template>
   <div class="bigBox">
     <div class="left">
-      <video :src="url" crossorigin="anonymous" controls></video>
+      <!-- <myVideo
+        :src="url"
+        :start-time="videoBeginTime"
+      ></myVideo> -->
+      <video
+        :src="url"
+        ref="videoRef"
+        controls
+        style="background-color: black"
+      ></video>
+
       <div class="timeline">
-        <div class="content" v-for="item in 10">
-          <span class="title">12:00</span>
-          <span class="text"> 这段描述了xxxxx </span>
+        <div
+          class="content"
+          v-for="item in knowledgeList"
+          @click="changeCurrentTime(item.startTime)"
+        >
+          <span class="title">{{ getCurrentTime(item.startTime) }}</span>
+          <span class="text"> {{ item.text }} </span>
         </div>
       </div>
     </div>
@@ -25,10 +39,14 @@
 
 <script setup lang="ts">
 import { useRoute } from "vue-router";
-import { onMounted, onUnmounted, ref } from "vue";
-import type { TabsPaneContext } from "element-plus";
+import { onMounted, ref } from "vue";
+import { ElMessage, type TabsPaneContext } from "element-plus";
+import { getKnowledgeByUrlAPI } from "@/apis/api";
+import type { KnowledgeList } from "@/types/home";
+import myVideo from "./video.vue";
 
 const activeName = ref("first");
+const videoRef = ref<HTMLMediaElement>();
 
 const handleClick = (tab: TabsPaneContext, event: Event) => {
   console.log(tab, event);
@@ -38,11 +56,64 @@ const route = useRoute();
 
 let url = ref<string>("");
 
+const knowledgeList = ref<KnowledgeList>();
+
+const getKnowledge = async () => {
+  const res = await getKnowledgeByUrlAPI(url.value);
+
+  if (res.data.code === 200) {
+    knowledgeList.value = res.data.data;
+  } else {
+    ElMessage.error(res.data.message);
+  }
+};
+
+const getCurrentTime = (time: string) => {
+  // 1. 将字符串毫秒转换为数字
+  const milliseconds = parseFloat(time);
+  if (isNaN(milliseconds) || !isFinite(milliseconds)) {
+    return "0:00"; // 非法值默认返回 0:00
+  }
+
+  // 2. 转换为秒（取整避免小数）
+  const totalSeconds = Math.floor(milliseconds / 1000);
+
+  // 3. 计算小时、分钟、秒
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
+  // 4. 格式化为 HH:MM:SS 或 MM:SS
+  if (hours > 0) {
+    // 超过1小时：显示 HH:MM:SS（如 1:12:30）
+    return `${hours}:${minutes.toString().padStart(2, "0")}:${seconds
+      .toString()
+      .padStart(2, "0")}`;
+  } else {
+    // 不足1小时：显示 MM:SS（如 15:30）
+    return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+  }
+};
+
+const changeCurrentTime = (beginTime: string) => {
+  // 1. 将字符串转换为数字（毫秒）
+  const milliseconds = parseFloat(beginTime);
+
+  // 2. 转换为秒（currentTime的单位是秒）
+  const totalSeconds = milliseconds / 1000;
+
+  // 3. 验证是否为有效数字
+  if (!isNaN(totalSeconds) && isFinite(totalSeconds)) {
+    videoRef.value!.currentTime = totalSeconds; // 设置视频时间
+  } else {
+    console.error("Invalid time value:", beginTime);
+  }
+};
+
 onMounted(() => {
   url.value = decodeURIComponent(route.params.url as string);
+  getKnowledge();
 });
-
-
 </script>
 
 <style lang="scss" scoped>
@@ -82,6 +153,7 @@ onMounted(() => {
         border-radius: 10px;
         min-width: 240px;
         margin-right: 20px;
+        cursor: pointer;
 
         .title {
           color: $primary-color;
