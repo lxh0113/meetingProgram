@@ -7,6 +7,7 @@ export const uploadFileAPI = (data: FormData) => {
   return http({
     url: `${baseUrl}/upload`, // 添加baseUrl前缀
     method: "POST",
+    headers: { "content-type": "multipart/form-data" },
     data,
   });
 };

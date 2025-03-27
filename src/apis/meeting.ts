@@ -141,12 +141,32 @@ export const signMeetingAPI = (userId: number, meetingId: number) => {
   });
 };
 
-export const getHistoryMeetingAPI = (userId:number) => {
+export const getHistoryMeetingAPI = (userId: number) => {
   return http({
     url: "/meeting/history",
     method: "GET",
-    params:{
-      userId
-    }
+    params: {
+      userId,
+    },
+  });
+};
+
+export const getSignDetailsAPI = (meetingId: number) => {
+  return http({
+    url: "/meeting/getbook",
+    method: "GET",
+    params: {
+      meetingId,
+    },
+  });
+};
+
+export const getMeetingResourceAPI = (meetingId: number) => {
+  return http({
+    url: "/meeting/getresouce",
+    method: "GET",
+    params: {
+      meetingId,
+    },
   });
 };

@@ -72,12 +72,12 @@
                 <el-upload
                   ref="upload"
                   class="upload-demo"
-                  action="/rag/upload"
+                  :action="ragUploadUrl"
                   :limit="10"
-                  :headers="header"
                   :data="{
                     process_now: true,
                   }"
+                  name="files"
                 >
                   <el-button type="primary">上传文件</el-button>
                   <!-- <el-button type="success" @click.stop="searchFile"
@@ -164,7 +164,8 @@ import {
 } from "@/apis/ai/plugins";
 import { useUserStore } from "@/stores/userStore";
 import { isHealthAPI, queryDocAPI } from "@/apis/rag";
-import { nextTick } from "vue";
+import { ragUploadUrl } from "@/utils/baseUrl";
+
 let md: MarkdownIt = new MarkdownIt();
 
 const resumeList = ref<string[]>([]);
@@ -359,7 +360,7 @@ const startRag = async () => {
   const res = await queryDocAPI(input.value);
   console.log(res);
   if (res.status === 200) {
-    isLoading.value=false
+    isLoading.value = false;
     console.log(res);
 
     handleRender(res.data.answer);

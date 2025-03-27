@@ -89,69 +89,89 @@
         <el-upload
           v-model:file-list="fileList"
           class="upload-demo"
-          action="/open/api/v2/agent/file/upload"
-          :on-preview="handlePreview"
+          :action="getAction()"
+          :before-upload="beforeUpload"
           :on-remove="handleRemove"
           :on-success="handleSuccess"
           :headers="header"
+          :on-change="changeFile"
+          :limit="1"
         >
+          <el-button
+            circle
+            type="primary"
+            @click.stop="getMeetingResource"
+            :icon="Refresh"
+          ></el-button>
           <el-button type="primary">点击上传</el-button>
           <el-button @click.stop="aiGenerate" text="plain" type="primary"
-            >AI获取会议资源</el-button
+            >AI会议资料总结</el-button
           >
           <template #tip>
             <div class="el-upload__tip">可选择文件上传</div>
           </template>
         </el-upload>
+        <el-table :data="meetingResourceList" style="width: 100%">
+          <el-table-column prop="name" label="文件名称"> </el-table-column>
+
+          <el-table-column label="操作">
+            <template #default="scope">
+              <el-button type="primary" @click="downloadRes(scope.row.url)"
+                >下载</el-button
+              >
+            </template>
+          </el-table-column>
+        </el-table>
       </el-tab-pane>
 
       <el-tab-pane label="智能总结">
-        <button type="button" class="button">
-          <span class="fold"></span>
-
-          <div class="points_wrapper">
-            <i class="point"></i>
-            <i class="point"></i>
-            <i class="point"></i>
-            <i class="point"></i>
-            <i class="point"></i>
-            <i class="point"></i>
-            <i class="point"></i>
-            <i class="point"></i>
-            <i class="point"></i>
-            <i class="point"></i>
-          </div>
-
-          <span class="inner"
-            ><svg
-              class="icon"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              xmlns="http://www.w3.org/2000/svg"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2.5"
+        <div style="display: flex; align-items: center">
+          <button type="button" class="button">
+            <span class="fold"></span>
+            <div class="points_wrapper">
+              <i class="point"></i>
+              <i class="point"></i>
+              <i class="point"></i>
+              <i class="point"></i>
+              <i class="point"></i>
+              <i class="point"></i>
+              <i class="point"></i>
+              <i class="point"></i>
+              <i class="point"></i>
+              <i class="point"></i>
+            </div>
+            <span class="inner"
+              ><svg
+                class="icon"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2.5"
+              >
+                <polyline
+                  points="13.18 1.37 13.18 9.64 21.45 9.64 10.82 22.63 10.82 14.36 2.55 14.36 13.18 1.37"
+                ></polyline></svg
+              >AI 智能总结</span
             >
-              <polyline
-                points="13.18 1.37 13.18 9.64 21.45 9.64 10.82 22.63 10.82 14.36 2.55 14.36 13.18 1.37"
-              ></polyline></svg
-            >AI 智能总结</span
-          >
-        </button>
+          </button>
+          <el-button text="plain" type="primary" @click="$router.push('/view')">导出成文档</el-button>
+        </div>
       </el-tab-pane>
 
-      <el-tab-pane label="代办事项"> </el-tab-pane>
+      <el-tab-pane label="代办事项"></el-tab-pane>
 
       <el-tab-pane label="会议设置">
         <el-form label-position="left" :data="meetingSettings">
-          <el-form-item label="开启会议录制">
+          <!-- <el-form-item label="开启会议录制">
             <el-switch
               v-model="meetingSettings.isRecord"
               active-color="#13ce66"
               inactive-color="#ff4949"
             ></el-switch>
-          </el-form-item>
+          </el-form-item> -->
           <el-form-item label="实时字幕">
             <el-switch
               v-model="meetingSettings.isCaptions"
@@ -169,7 +189,9 @@
           </el-form-item>
 
           <el-form-item label="分享会议">
-            <el-button text="plain" type="primary">链接分享</el-button>
+            <el-button text="plain" type="primary" @click="handleCopy"
+              >链接分享</el-button
+            >
           </el-form-item>
           <el-form-item label="签到">
             <el-button type="primary" text="plain">查看已到</el-button>
@@ -187,17 +209,31 @@
 import { applyReactInVue } from "veaury";
 import myReactComponent from "./jisit.tsx"; // 注意组件命名规范
 import { ref, onMounted, onUnmounted } from "vue";
-import type { UploadProps, UploadUserFile } from "element-plus";
+import {
+  ElMessage,
+  type UploadFile,
+  type UploadProps,
+  type UploadRawFile,
+  type UploadUserFile,
+} from "element-plus";
 import { agentExecuteAPI, fileDownloadAPI } from "@/apis/ai/ai.ts";
-import { appKey, getSign } from "@/apis/ai/base.ts";
 import type { AgentMessageList } from "@/types/home";
 import { SSEService } from "@/utils/sse";
 import { v4 as uuidv4 } from "uuid";
 import { API_ENDPOINTS } from "@/apis/ai/aiSse";
 import { agentId, getHeaders } from "@/apis/ai/base";
+import { copyText } from "vue3-clipboard";
 
 import MarkdownIt from "markdown-it";
+import { useRoute } from "vue-router";
+import { getMeetingResourceAPI } from "@/apis/meeting.ts";
+import { useMeetingStore } from "@/stores/meetingStore.ts";
+import { Refresh } from "@element-plus/icons-vue";
+import { baseUrl, ragUploadUrl } from "@/utils/baseUrl.ts";
+import { uploadFileAPI } from "@/apis/rag.ts";
 let md: MarkdownIt = new MarkdownIt();
+
+const meetingStore = useMeetingStore();
 
 const meetingSettings = ref({
   isRecord: false,
@@ -294,7 +330,6 @@ const startAgent = async () => {
       stream: true,
     },
     (event) => {
-     
       // console.log(event)
       isLoading.value = false;
 
@@ -350,7 +385,7 @@ onMounted(async () => {
       processorRef.value = processor;
 
       // 初始化 WebSocket
-      wsRef.value = new WebSocket("ws://10.251.11.110:8765/");
+      wsRef.value = new WebSocket("ws://83.229.122.190:8080/");
       wsRef.value.onopen = () => {
         console.log("WebSocket 连接已建立");
       };
@@ -405,6 +440,86 @@ const convertFloat32ToPCM = (input: Float32Array): Int16Array => {
   }
   return output;
 };
+
+const route = useRoute();
+
+const handleCopy = () => {
+  copyText(
+    "http://www.tccwzfy.cloud/" + route.params.id,
+    undefined,
+    (e: any) => {
+      if (e) {
+        ElMessage.error("复制会议链接失败");
+      } else {
+        ElMessage.success("复制会议链接成功");
+      }
+    }
+  );
+};
+
+// 会议资料处理
+
+const meetingResourceList = ref([]);
+
+const currentFile = ref();
+
+const changeFile = (uploadFile: UploadFile) => {
+  console.log(uploadFile);
+  currentFile.value = uploadFile.raw;
+};
+
+const downloadRes = async (url: string) => {
+  let response = await fetch(url);
+  let blob = await response.blob();
+  let objectUrl = window.URL.createObjectURL(blob);
+  let a = document.createElement("a");
+  a.href = objectUrl;
+  a.download = "filename"; // 下载文件的名字
+  a.click();
+  a.remove();
+};
+
+const beforeUpload = async (rawFile: UploadRawFile) => {
+  //处理上传之前的逻辑 先上传到rag那边
+  //console.log(rawFile);
+
+  let data = new FormData();
+  data.append("files", currentFile.value);
+  data.append("process_now", "true");
+
+  const res = await uploadFileAPI(data);
+
+  console.log(res);
+
+  currentName.value = rawFile.name;
+};
+
+const currentName = ref("");
+
+const getAction = () => {
+  return (
+    baseUrl +
+    "/oss/meeting/resource" +
+    "?meetingId=" +
+    meetingStore.meetingSettings?.id +
+    "&name=" +
+    currentName.value
+  );
+};
+
+const getMeetingResource = async () => {
+  const res = await getMeetingResourceAPI(meetingStore.meetingSettings!.id!);
+
+  if (res.data.code === 200) {
+    meetingResourceList.value = res.data.data;
+  } else {
+    ElMessage.error("获取失败");
+  }
+};
+
+onMounted(() => {
+  getMeetingResource();
+});
 </script>
 
 <style lang="scss" scoped>

@@ -17,7 +17,14 @@ import * as ElementPlusIconsVue from '@element-plus/icons-vue'
 
 // import { VuePlugin } from 'vue'
 
+import VueClipboard from 'vue3-clipboard'
+
 const app = createApp(App);
+
+app.use(VueClipboard, {
+  autoSetContainer: true,
+  appendToBody: true,
+})
 
 app.use(createPinia().use(piniaPluginPersistedstate));
 app.use(router);

@@ -20,6 +20,10 @@ const router = createRouter({
       component: () => import("../views/user/components/history.vue"),
     },
     {
+      path: "/view",
+      component: () => import("../views/jisit/components/view.vue"),
+    },
+    {
       path: "/back",
       component: () => import("../views/back/index.vue"),
       redirect: "/back/user",

@@ -1,11 +1,19 @@
 import React, { useState, useEffect, useRef } from "react";
 import { JitsiMeeting } from "@jitsi/react-sdk";
-import { type IJitsiMeetExternalApi } from "@jitsi/react-sdk/lib/types";
+import { Button, Modal, message, Upload } from "antd";
 
 import "./jisit.scss";
+import { useRoute, useRouter } from "vue-router";
 
 import { useUserStore } from "@/stores/userStore";
 import { useMeetingStore } from "@/stores/meetingStore";
+import { endMeetingAPI } from "@/apis/meeting";
+import { ElMessage } from "element-plus";
+
+import { UploadOutlined } from "@ant-design/icons";
+import type { UploadProps } from "antd";
+import router from "@/router";
+import { baseUrl } from "@/utils/baseUrl";
 
 function MyReactComponent() {
   const userStore = useUserStore();
@@ -94,11 +102,75 @@ function MyReactComponent() {
   //   return output;
   // };
 
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const showModal = () => {
+    setIsModalOpen(true);
+  };
+
+  const handleOk = () => {
+    setIsModalOpen(false);
+    closeMeeting();
+  };
+
+  const handleCancel = () => {
+    setIsModalOpen(false);
+    closeMeeting();
+  };
+
+  const dealRecord = () => {
+    // 询问是否要上传录制文件
+
+    showModal();
+  };
+
+  const closeMeeting = async () => {
+    router.push("/home");
+
+    console.log(meetingStore.meetingSettings?.id);
+    const res = await endMeetingAPI(meetingStore.meetingSettings!.id!);
+
+    if (res.data.code === 200) {
+    } else ElMessage.error("结束会议失败，请重试");
+  };
+
+  
+  const props: UploadProps = {
+    name: "file",
+    action:
+      baseUrl +
+      "/oss/meeting/recording?meetingId=" +
+      meetingStore.meetingSettings!.id!,
+    headers: {},
+    onChange(info) {
+      if (info.file.status !== "uploading") {
+        console.log(info.file, info.fileList);
+      }
+      if (info.file.status === "done") {
+        message.success(`${info.file.name} 文件上传成功`);
+      } else if (info.file.status === "error") {
+        message.error(`${info.file.name} 文件上传失败.`);
+      }
+    },
+  };
+
   return (
     <>
       {/* <div>
         <p>实时音频流已启用，正在通过 WebSocket 发送 PCM 数据。</p>
       </div> */}
+      <Modal
+        title="是否上传本地录制文件"
+        open={isModalOpen}
+        okText="确定"
+        cancelText="取消"
+        onOk={handleOk}
+        onCancel={handleCancel}
+      >
+        <Upload {...props}>
+          <Button icon={<UploadOutlined />}>点击上传</Button>
+        </Upload>
+      </Modal>
       <JitsiMeeting
         domain="www.tccwzfy.cloud"
         roomName={meetingStore.meetingSettings?.id + "" || "您的会议"}
@@ -147,7 +219,7 @@ function MyReactComponent() {
           iframeRef.style.height = "100vh";
           iframeRef.style.backgroundColor = "white";
         }}
-        onReadyToClose={() => console.log("Jitsi Meet is ready to be closed")}
+        onReadyToClose={() => dealRecord()}
       />
     </>
   );
