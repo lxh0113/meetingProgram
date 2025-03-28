@@ -157,7 +157,9 @@
               >AI 智能总结</span
             >
           </button>
-          <el-button text="plain" type="primary" @click="$router.push('/view')">导出成文档</el-button>
+          <el-button text="plain" type="primary" @click="$router.push('/view')"
+            >导出成文档</el-button
+          >
         </div>
       </el-tab-pane>
 
@@ -194,10 +196,32 @@
             >
           </el-form-item>
           <el-form-item label="签到">
-            <el-button type="primary" text="plain">查看已到</el-button>
-            <el-button type="primary" text="plain">导出成excel</el-button>
+            <el-button type="primary" text="plain" @click="getSign"
+              >查看已到</el-button
+            >
+            <el-button type="primary" text="plain" @click="toExcel"
+              >导出成excel</el-button
+            >
           </el-form-item>
         </el-form>
+        <el-table
+          :data="[...signTableData, ...noSignTableData]"
+          ref="exportTableRef"
+          style="width: 100%"
+        >
+          <el-table-column prop="username" label="姓名" />
+          <el-table-column prop="email" label="邮箱" />
+          <el-table-column label="头像">
+            <template #default="scope">
+              <el-avatar :src="scope.row.avatar"></el-avatar>
+            </template>
+          </el-table-column>
+          <el-table-column label="签到情况">
+            <template #default="scope">
+              {{ scope.$index < signTableData.length ? "已到" : "未到" }}
+            </template>
+          </el-table-column>
+        </el-table>
       </el-tab-pane>
 
       <el-tab-pane label="推荐会议"></el-tab-pane>
@@ -217,7 +241,7 @@ import {
   type UploadUserFile,
 } from "element-plus";
 import { agentExecuteAPI, fileDownloadAPI } from "@/apis/ai/ai.ts";
-import type { AgentMessageList } from "@/types/home";
+import type { AgentMessageList, User } from "@/types/home";
 import { SSEService } from "@/utils/sse";
 import { v4 as uuidv4 } from "uuid";
 import { API_ENDPOINTS } from "@/apis/ai/aiSse";
@@ -226,12 +250,13 @@ import { copyText } from "vue3-clipboard";
 
 import MarkdownIt from "markdown-it";
 import { useRoute } from "vue-router";
-import { getMeetingResourceAPI } from "@/apis/meeting.ts";
+import { getMeetingResourceAPI, getSignDetailsAPI } from "@/apis/meeting.ts";
 import { useMeetingStore } from "@/stores/meetingStore.ts";
 import { Refresh } from "@element-plus/icons-vue";
 import { baseUrl, ragUploadUrl } from "@/utils/baseUrl.ts";
 import { uploadFileAPI } from "@/apis/rag.ts";
 let md: MarkdownIt = new MarkdownIt();
+import * as xlsx from "xlsx";
 
 const meetingStore = useMeetingStore();
 
@@ -374,6 +399,7 @@ onMounted(async () => {
         const inputData = event.inputBuffer.getChannelData(0);
         const pcmData = convertFloat32ToPCM(inputData);
         if (wsRef.value && wsRef.value.readyState === WebSocket.OPEN) {
+          // console.log(pcmData)
           wsRef.value.send(pcmData);
         }
       };
@@ -385,12 +411,12 @@ onMounted(async () => {
       processorRef.value = processor;
 
       // 初始化 WebSocket
-      wsRef.value = new WebSocket("ws://83.229.122.190:8080/");
+      wsRef.value = new WebSocket("ws://10.251.39.158:876/");
       wsRef.value.onopen = () => {
         console.log("WebSocket 连接已建立");
       };
       wsRef.value.onmessage = (event: MessageEvent) => {
-        console.log(JSON.parse(event.data));
+        console.log(event);
 
         let data = JSON.parse(event.data);
 
@@ -518,8 +544,35 @@ const getMeetingResource = async () => {
 };
 
 onMounted(() => {
-  getMeetingResource();
+  //getMeetingResource();
 });
+
+// 查看签到模块
+
+const noSignTableData = ref<User[]>([]);
+const signTableData = ref<User[]>([]);
+
+const getSign = async () => {
+  const res = await getSignDetailsAPI(meetingStore.meetingSettings!.id!);
+
+  if (res.data.code === 200) {
+    noSignTableData.value = res.data.data.books;
+    signTableData.value = res.data.data.signs;
+  } else {
+    ElMessage.error("获取出错");
+  }
+};
+const exportTableRef = ref(null);
+const toExcel = () => {
+  // 导出成excel
+  const tableDom = exportTableRef.value?.$el;
+  if (!tableDom) {
+    return;
+  }
+
+  const wb = xlsx.utils.table_to_book(tableDom);
+  xlsx.writeFile(wb, "签到情况.xlsx");
+};
 </script>
 
 <style lang="scss" scoped>

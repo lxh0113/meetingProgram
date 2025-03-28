@@ -28,7 +28,9 @@
         <img src="../../../assets/img/logo.png" alt="" />智通精灵
       </span>
       <el-tabs v-model="activeName" class="demo-tabs" @tab-click="handleClick">
-        <el-tab-pane label="会议总结" name="first"> </el-tab-pane>
+        <el-tab-pane label="会议总结" name="first">
+          <div class="rightContent" v-html="md.render(summary)"></div>
+        </el-tab-pane>
         <el-tab-pane label="代办提醒" name="second"> </el-tab-pane>
         <el-tab-pane label="人员名单" name="third"> </el-tab-pane>
         <el-tab-pane label="导出" name="fourth"> </el-tab-pane>
@@ -44,6 +46,10 @@ import { ElMessage, type TabsPaneContext } from "element-plus";
 import { getKnowledgeByUrlAPI } from "@/apis/api";
 import type { KnowledgeList } from "@/types/home";
 import myVideo from "./video.vue";
+import { getSummaryByVideoAPI } from "@/apis/api";
+
+import MarkdownIt from "markdown-it";
+let md: MarkdownIt = new MarkdownIt();
 
 const activeName = ref("first");
 const videoRef = ref<HTMLMediaElement>();
@@ -110,9 +116,22 @@ const changeCurrentTime = (beginTime: string) => {
   }
 };
 
+const summary = ref("");
+
+const getSummary = async () => {
+  const res = await getSummaryByVideoAPI(url.value);
+
+  if (res.data.code === 200) {
+    console.log(res.data.data);
+
+    summary.value = res.data.data;
+  }
+};
+
 onMounted(() => {
   url.value = decodeURIComponent(route.params.url as string);
   getKnowledge();
+  getSummary();
 });
 </script>
 
@@ -174,6 +193,10 @@ onMounted(() => {
     // border-radius: 10px;
     // box-shadow: rgba(17, 17, 26, 0.1) 0px 0px 16px;
     margin-left: 20px;
+
+    .rightContent {
+      max-width: 460px;
+    }
 
     > .title {
       color: $primary-color;

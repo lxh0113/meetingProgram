@@ -9,3 +9,13 @@ export const getKnowledgeByUrlAPI = (videoUrl: string) => {
     },
   });
 };
+
+export const getSummaryByVideoAPI = (videoUrl: string) => {
+  return http({
+    url: "/api/summary",
+    method: "POST",
+    params: {
+      videoUrl,
+    },
+  });
+};
