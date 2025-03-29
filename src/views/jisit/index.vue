@@ -373,99 +373,265 @@ onMounted(async () => {
   header.value = await getHeaders();
 });
 
-// 传递
-const stream = ref<MediaStream | null>(null);
-const audioContextRef = ref<AudioContext | null>(null);
-const processorRef = ref<ScriptProcessorNode | null>(null);
-const wsRef = ref<WebSocket | null>(null);
+//处理音频流转文字数据
 
-// 初始化 AudioContext 和 ScriptProcessorNode
-onMounted(async () => {
-  try {
-    const mediaStream = await navigator.mediaDevices.getUserMedia({
-      audio: true,
-    });
-    console.log("获取到流");
-    stream.value = mediaStream;
-    console.log(stream.value.getAudioTracks());
+import { computed, Ref } from 'vue';
 
-    // 确保 stream.value 赋值后再初始化 WebSocket
-    if (stream.value) {
-      const audioContext = new AudioContext({ sampleRate: 16000 });
-      const source = audioContext.createMediaStreamSource(stream.value);
-      const processor = audioContext.createScriptProcessor(4096, 1, 1);
+interface BaiduSpeechConfig {
+  appid: string | number;
+  appkey: string;
+}
 
-      processor.onaudioprocess = (event: AudioProcessingEvent) => {
-        const inputData = event.inputBuffer.getChannelData(0);
-        const pcmData = convertFloat32ToPCM(inputData);
-        if (wsRef.value && wsRef.value.readyState === WebSocket.OPEN) {
-          // console.log(pcmData)
-          wsRef.value.send(pcmData);
-        }
-      };
+interface BaiduSpeechResult {
+  status: Ref<string>;
+  result: Ref<string>;
+  error: Ref<string | null>;
+  isRecording: Ref<boolean>;
+  isConnecting: Ref<boolean>;
+  statusDisplay: Ref<string>;
+  startRecognition: () => Promise<void>;
+  stopRecognition: () => void;
+}
 
-      source.connect(processor);
-      processor.connect(audioContext.destination);
+const useBaiduSpeechRecognition = (config: BaiduSpeechConfig): BaiduSpeechResult => {
+  const status = ref<"CLOSED" | "CONNECTING" | "OPEN" | "CLOSING">("CLOSED");
+  const result = ref<string>("");
+  const error = ref<string | null>(null);
+  const ws = ref<WebSocket | null>(null);
+  const mediaStream = ref<MediaStream | null>(null);
+  const audioContext = ref<AudioContext | null>(null);
+  const workletNode = ref<AudioWorkletNode | null>(null);
+  const retryCount = ref<number>(0);
+  const MAX_RETRIES = 3;
 
-      audioContextRef.value = audioContext;
-      processorRef.value = processor;
+  // 生成随机ID
+  const generateId = (): string => Math.random().toString(36).substr(2, 8);
 
-      // 初始化 WebSocket
-      wsRef.value = new WebSocket("ws://192.168.189.12:5000/ws/asr");
-      wsRef.value.onopen = () => {
-        console.log("WebSocket 连接已建立");
-      };
-      wsRef.value.onmessage = (event: MessageEvent) => {
-        console.log(event);
-
-        let data = JSON.parse(event.data);
-
-        if (data.action === "result" && meetingSettings.value.isCaptions) {
-          // 显示字幕
-          let content = JSON.parse(data.data);
-          captions.value = content.src;
-          if (meetingSettings.value.isTransition) transText.value = content.dst;
-
-          // captions.value += content.src ? content.src : "";
-          // if (meetingSettings.value.isTransition)
-          //   transText.value += content.dst ? content.dst : "";
-        }
-      };
-      wsRef.value.onerror = (error: Event) => {
-        console.error("WebSocket 错误:", error);
-      };
-      wsRef.value.onclose = () => {
-        console.log("WebSocket 连接已关闭");
-      };
+  // 注册AudioWorklet
+  const registerAudioWorklet = async (): Promise<void> => {
+    try {
+      // 关键路径配置：使用绝对路径确保生产环境能加载
+      const workletUrl = new URL("../test/audio-processor.js", import.meta.url).href;
+      await audioContext.value!.audioWorklet.addModule(workletUrl);
+    } catch (err) {
+      console.error("加载AudioWorklet失败:", err);
+      throw new Error("音频处理初始化失败");
     }
-  } catch (error) {
-    if ((error as Error).name === "NotAllowedError") {
-      alert("请允许网站访问麦克风");
+  };
+
+  // 初始化录音
+  const initRecorder = async (): Promise<void> => {
+    try {
+      mediaStream.value = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          sampleRate: 16000,
+          channelCount: 1,
+          echoCancellation: true,
+          noiseSuppression: true,
+        },
+      });
+
+      audioContext.value = new AudioContext({ sampleRate: 16000 });
+      await registerAudioWorklet();
+
+      const source = audioContext.value.createMediaStreamSource(
+        mediaStream.value
+      );
+      workletNode.value = new AudioWorkletNode(
+        audioContext.value,
+        "audio-processor"
+      );
+
+      source.connect(workletNode.value);
+      workletNode.value.port.onmessage = (event: MessageEvent) => {
+        if (
+          status.value === "OPEN" &&
+          ws.value?.readyState === WebSocket.OPEN
+        ) {
+          ws.value.send(event.data.data);
+        }
+      };
+    } catch (err) {
+      throw new Error(`录音初始化失败: ${(err as Error).message}`);
+    }
+  };
+
+  // 处理WebSocket消息
+  const handleMessage = (event: MessageEvent): void => {
+    console.log('处理消息中');
+    try {
+      const data = JSON.parse(event.data);
+      console.log(data);
+      switch (data.type) {
+        case "MID_TEXT":
+          result.value = data.result || "";
+          break;
+        case "HEARTBEAT":
+          break;
+        case "ERROR":
+          error.value = `识别错误: ${data.message}`;
+          stopRecognition();
+          break;
+      }
+    } catch (err) {
+      console.error("消息解析错误:", err);
+    }
+  };
+
+  // 清理资源
+  const cleanUp = (): void => {
+    if (
+      ws.value &&
+      ![WebSocket.CLOSED, WebSocket.CLOSING].includes(ws.value.readyState)
+    ) {
+      ws.value.close();
+    }
+
+    if (mediaStream.value) {
+      mediaStream.value.getTracks().forEach((track) => track.stop());
+    }
+
+    if (audioContext.value && audioContext.value.state !== "closed") {
+      audioContext.value.close();
+    }
+
+    workletNode.value = null;
+    status.value = "CLOSED";
+  };
+
+  // 开始识别
+  const startRecognition = async (): Promise<void> => {
+    if (status.value !== "CLOSED" && retryCount.value >= MAX_RETRIES) return;
+
+    try {
+      status.value = "CONNECTING";
+      error.value = null;
+
+      ws.value = new WebSocket(
+        `wss://vop.baidu.com/realtime_asr?sn=${generateId()}`
+      );
+
+      ws.value.onopen = async () => {
+        try {
+          await initRecorder();
+          ws.value!.send(
+            JSON.stringify({
+              type: "START",
+              data: {
+                appid: config.appid,
+                appkey: config.appkey,
+                dev_pid: 15372,
+                cuid: generateId(),
+                format: "pcm",
+                sample: 16000,
+              },
+            })
+          );
+          status.value = "OPEN";
+          retryCount.value = 0;
+          console.log('WebSocket connected');
+        } catch (err) {
+          error.value = (err as Error).message;
+          ws.value!.close();
+        }
+      };
+
+      ws.value.onmessage = handleMessage;
+      ws.value.onerror = () => {
+        error.value = "连接错误，正在重试...";
+        cleanUp();
+        retry();
+      };
+      ws.value.onclose = () => cleanUp();
+    } catch (err) {
+      error.value = (err as Error).message;
+      retry();
+    }
+  };
+
+  // 重试逻辑
+  const retry = (): void => {
+    if (retryCount.value < MAX_RETRIES) {
+      retryCount.value++;
+      setTimeout(startRecognition, 1000 * retryCount.value);
     } else {
-      console.error("Error accessing microphone", error);
+      error.value = "超过最大重试次数";
+      cleanUp();
     }
-  }
-});
+  };
 
-// 清理资源
-onUnmounted(() => {
-  if (wsRef.value) {
-    wsRef.value.close();
-  }
-  if (audioContextRef.value) {
-    audioContextRef.value.close();
-  }
-});
+  // 停止识别
+  const stopRecognition = (): void => {
+    if (status.value === "OPEN") {
+      status.value = "CLOSING";
+      try {
+        if (ws.value?.readyState === WebSocket.OPEN) {
+          ws.value.send(JSON.stringify({ type: "END" }));
+        }
+      } finally {
+        cleanUp();
+      }
+    }
+  };
 
-// 将 Float32Array 转换为 16bit PCM
-const convertFloat32ToPCM = (input: Float32Array): Int16Array => {
-  const output = new Int16Array(input.length);
-  for (let i = 0; i < input.length; i++) {
-    const s = Math.max(-1, Math.min(1, input[i])); // 限制范围在 -1 到 1
-    output[i] = s < 0 ? s * 0x8000 : s * 0x7fff; // 转换为 16bit
-  }
-  return output;
+  // 计算属性
+  const isRecording = computed<boolean>(() => status.value === "OPEN");
+  const isConnecting = computed<boolean>(() => status.value === "CONNECTING");
+  const statusDisplay = computed<string>(() => {
+    switch (status.value) {
+      case "CONNECTING":
+        return "连接中...";
+      case "OPEN":
+        return "录音中";
+      case "CLOSING":
+        return "正在停止";
+      default:
+        return "准备就绪";
+    }
+  });
+
+  return {
+    status,
+    result,
+    error,
+    isRecording,
+    isConnecting,
+    statusDisplay,
+    startRecognition,
+    stopRecognition,
+  };
 };
+
+// 百度语音配置
+const config: BaiduSpeechConfig = {
+  appid: 118270267, // 替换为你的百度应用ID
+  appkey: "BGXhWKtfsQhycN8SwNw35lhO", // 替换为你的百度应用Key
+};
+
+const {
+  status,
+  result,
+  error,
+  isRecording,
+  isConnecting,
+  statusDisplay,
+  startRecognition,
+  stopRecognition,
+} = useBaiduSpeechRecognition(config);
+
+const toggleRecognition = (): void => {
+  isRecording.value ? stopRecognition() : startRecognition();
+};
+
+onMounted(()=>{
+  startRecognition()
+})
+
+onUnmounted(() => {
+  stopRecognition();
+});
+
+
 
 const route = useRoute();
 
