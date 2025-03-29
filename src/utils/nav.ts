@@ -3,7 +3,7 @@ import { type NavList } from "../types/home.d";
 const userNavList: NavList = [
   { path: "/home", icon: "iconfont icon-list", text: "工作台" },
   { path: "/forum", icon: "iconfont icon-forum", text: "论坛" },
-  { path: "/ai", icon: "iconfont icon-Ai", text: "智通精灵" },
+  { path: "/ai", icon: "iconfont icon-Ai", text: "智会精灵" },
   { path: "/message", icon: "iconfont icon-message", text: "消息中心" },
   { path: "/user", icon: "iconfont icon-information", text: "个人中心" },
 ];

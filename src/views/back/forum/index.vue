@@ -48,7 +48,7 @@
       <div class="right">
         <span class="title">论坛热词</span>
         <img
-          src="./1.jpg"
+          :src="wordCloudUrl"
         ></img>
       </div>
     </div>
@@ -94,6 +94,7 @@
 
 <script lang="ts" setup>
 import { adminGetAllPostAPI, adminUpdatePostStatusAPI } from "@/apis/admin";
+import { getWordCloudAPI } from "@/apis/forum";
 import type { AdminPost } from "@/types/home";
 import { number } from "echarts";
 import { ElMessage } from "element-plus";
@@ -129,8 +130,25 @@ const changeStatus=async (id:number,status:number)=>{
   else ElMessage.error(res.data.message)
 }
 
+const wordCloudUrl=ref('')
+
+const getWordCloud=async()=>{
+  const res = await getWordCloudAPI()
+
+  console.log(res)
+
+  if(res.status===200){
+    const blob=new Blob([res.data], { type: 'image/png' })
+    wordCloudUrl.value=URL.createObjectURL(blob);
+  }
+  else {
+    ElMessage.error('获取词云出错')
+  }
+}
+
 onMounted(() => {
-  getPost()
+  // getPost()
+  getWordCloud()
 });
 </script>
 
@@ -229,6 +247,8 @@ onMounted(() => {
 
       img{
         height: 100px;
+
+        object-fit:contain;
       }
     }
   }

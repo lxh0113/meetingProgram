@@ -17,7 +17,11 @@
       </div>
       <div class="right">
         <div class="forumsBox">
-          <ForumSmallCard @click="$router.push('/forum/1')" v-for="item in 3" />
+          <ForumSmallCard
+            v-for="item in recommendList"
+            :post="item"
+            @click="$router.push('/forum/' + item.id)"
+          />
         </div>
         <button class="button">
           <svg
@@ -54,12 +58,7 @@
     </div>
   </div>
 
-  <el-dialog
-    draggable="true"
-    v-model="dialogVisible"
-    :title="title"
-    width="600"
-  >
+  <el-dialog v-model="dialogVisible" :title="title" width="600">
     <el-form
       :model="addFormData"
       label-width="80px"
@@ -148,7 +147,7 @@
         </el-radio-group>
       </el-form-item>
 
-      <el-form-item v-if="bookData.meetingType" label="地址">
+      <el-form-item v-if="bookData.meetingType === 0" label="地址">
         <Map @change="getAddress"></Map>
       </el-form-item>
 
@@ -204,14 +203,12 @@
 import ForumSmallCard from "../forum/components/forumSmallCard.vue";
 import Meeting from "../workBench/components/meeting.vue";
 import Schedule from "../workBench/components/schedule.vue";
-import { ref } from "vue";
+import { onMounted, ref } from "vue";
 import Map from "../components/Map.vue";
 import { useRouter } from "vue-router";
-
 import { ElMessage, ElMessageBox } from "element-plus";
-
 import type { UploadProps, UploadUserFile } from "element-plus";
-import type { MeetingSettings, MeetingSetting } from "@/types/home";
+import type { MeetingSettings, MeetingSetting, Post } from "@/types/home";
 import { useMeetingStore } from "@/stores/meetingStore";
 import {
   createMeetingAPI,
@@ -219,6 +216,7 @@ import {
   quicklyMeetingAPI,
 } from "@/apis/meeting";
 import { useUserStore } from "@/stores/userStore";
+import { getRecommendAPI } from "@/apis/forum";
 
 const router = useRouter();
 
@@ -371,6 +369,22 @@ const aiGenerate = () => {};
 const getAddress = (item: any) => {
   console.log(item);
 };
+
+// 获取推荐
+
+const recommendList = ref<Post[]>();
+
+const getRecommend = async () => {
+  const res = await getRecommendAPI(userStore.user.id);
+
+  if (res.status === 200) {
+    recommendList.value = res.data.recommended_posts;
+  } else ElMessage.error("获取失败");
+};
+
+onMounted(() => {
+  getRecommend();
+});
 </script>
 
 <style lang="scss" scoped>

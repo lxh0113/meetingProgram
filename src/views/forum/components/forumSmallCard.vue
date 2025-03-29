@@ -1,28 +1,36 @@
 <template>
   <div class="myCardBox">
-    <span class="title">震惊</span>
+    <span class="title">{{ props.post.label }}</span>
     <el-text line-clamp="2" style="height: 50px">
-      Self element set width 100px Self element set width 100px Self element set
-      width 100px
+      {{ props.post.content }}
     </el-text>
     <div class="bottom">
       <span class="details">
         <span class="iconfont icon-eye"></span>
-        <span>200</span>
+        <span>{{ props.post.views }}</span>
       </span>
       <span class="details">
         <span class="iconfont icon-like"></span>
-        <span>200</span>
+        <span>{{ props.post.likes }}</span>
       </span>
       <span class="details">
         <span class="iconfont icon-star"></span>
-        <span>200</span>
+        <span>{{ props.post.favorites }}</span>
       </span>
     </div>
   </div>
 </template>
 
-<script lang="ts" setup></script>
+<script lang="ts" setup>
+import type { Post } from "@/types/home";
+
+const props = withDefaults(
+  defineProps<{
+    post: Post;
+  }>(),
+  {}
+);
+</script>
 
 <style lang="scss" scoped>
 .myCardBox {

@@ -2,6 +2,34 @@ import http from "../utils/http";
 
 import type { PublishPost, ReplyComment } from "@/types/home";
 
+export const getWordCloudAPI = () => {
+  return http({
+    url: "/wordcloud/generate",
+    method: "GET",
+    responseType: "arraybuffer",
+  });
+};
+
+export const getRecommendAPI = (user_id: number) => {
+  return http({
+    url: "/forum/recommend",
+    method: "GET",
+    params: {
+      user_id,
+    },
+  });
+};
+
+export const getRecommendForumAPI = (user_id: number) => {
+  return http({
+    url: "/forum/recommend8",
+    method: "GET",
+    params: {
+      user_id,
+    },
+  });
+};
+
 export const getPostsAPI = () => {
   return http({
     url: "/forum",

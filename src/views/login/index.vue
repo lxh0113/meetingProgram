@@ -29,6 +29,7 @@
               :prefix-icon="Lock"
               style="height: 50px"
               class="loginInput"
+              type="password"
               v-model="loginData.password"
               placeholder="请输入登录密码"
             />
@@ -118,21 +119,21 @@ const login = async () => {
       setTimeout(() => {
         router.push("/back");
       });
-    } else {
-      const res = await loginAPI(
-        loginData.value.account,
-        loginData.value.password
-      );
-      console.log(res.data);
+    } else ElMessage.error("登录失败");
+  } else {
+    const res = await loginAPI(
+      loginData.value.account,
+      loginData.value.password
+    );
+    console.log(res.data);
 
-      if (res.data.code === 200) {
-        ElMessage.success("登陆成功");
-        userStore.setUserInfo(res.data.data);
-        setTimeout(() => {
-          router.push("/");
-        }, 200);
-      } else ElMessage.error("登录失败");
-    }
+    if (res.data.code === 200) {
+      ElMessage.success("登陆成功");
+      userStore.setUserInfo(res.data.data);
+      setTimeout(() => {
+        router.push("/");
+      }, 200);
+    } else ElMessage.error("登录失败");
   }
 };
 </script>

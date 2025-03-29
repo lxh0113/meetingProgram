@@ -38,6 +38,9 @@ importers:
       '@microsoft/fetch-event-source':
         specifier: ^2.0.1
         version: 2.0.1
+      '@muguilin/xf-voice-dictation':
+        specifier: ^1.0.1
+        version: 1.0.1
       '@mui/material':
         specifier: ^6.4.7
         version: 6.4.7(@emotion/react@11.14.0(@types/react@18.3.18)(react@18.3.1))(@emotion/styled@11.14.0(@emotion/react@11.14.0(@types/react@18.3.18)(react@18.3.1))(@types/react@18.3.18)(react@18.3.1))(@types/react@18.3.18)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -59,6 +62,9 @@ importers:
       axios:
         specifier: ^1.7.9
         version: 1.7.9
+      crypto-js:
+        specifier: ^4.2.0
+        version: 4.2.0
       dayjs:
         specifier: ^1.11.13
         version: 1.11.13
@@ -1158,8 +1164,8 @@ packages:
       react: 16 || 17 || 18 || 19
       react-dom: 16 || 17 || 18 || 19
 
-  '@jitsi/sdp-interop@https://codeload.github.com/jitsi/sdp-interop/tar.gz/4669790bb9020cc8f10c1d1f3823c26b08497547':
-    resolution: {tarball: https://codeload.github.com/jitsi/sdp-interop/tar.gz/4669790bb9020cc8f10c1d1f3823c26b08497547}
+  '@jitsi/sdp-interop@git+https://git@github.com:jitsi/sdp-interop.git#4669790bb9020cc8f10c1d1f3823c26b08497547':
+    resolution: {commit: 4669790bb9020cc8f10c1d1f3823c26b08497547, repo: git@github.com:jitsi/sdp-interop.git, type: git}
     version: 1.0.5
 
   '@jitsi/sdp-simulcast@0.4.0':
@@ -1198,6 +1204,9 @@ packages:
 
   '@microsoft/fetch-event-source@2.0.1':
     resolution: {integrity: sha512-W6CLUJ2eBMw3Rec70qrsEW0jOm/3twwJv21mrmj2yORiaVmVYGS4sSS5yUwvQc1ZlDLYGPnClVWmUUMagKNsfA==}
+
+  '@muguilin/xf-voice-dictation@1.0.1':
+    resolution: {integrity: sha512-mkiTpjSbwJHnnLv4Gi6lBlcINLJRMZ50M7y3in8cJ4LIIHjGk4bu1K2EsmzLTE2+hWCbULzT/9T+D4yu4JuAFQ==}
 
   '@mui/core-downloads-tracker@6.4.7':
     resolution: {integrity: sha512-XjJrKFNt9zAKvcnoIIBquXyFyhfrHYuttqMsoDS7lM7VwufYG4fAPw4kINjBFg++fqXM2BNAuWR9J7XVIuKIKg==}
@@ -2284,6 +2293,9 @@ packages:
   cross-spawn@7.0.6:
     resolution: {integrity: sha512-uV2QOWP2nWzsy2aMp8aRibhi9dlzF5Hgh5SHaB9OiTGEyDTiJJyx0uy51QXdyWbtAHNua4XJzUKca3OzKUd3vA==}
     engines: {node: '>= 8'}
+
+  crypto-js@4.2.0:
+    resolution: {integrity: sha512-KALDyEYgpY+Rlob/iriUtjV6d5Eq+Y191A5g4UqLAi8CyGP9N1+FdVbkc1SxKc2r4YAYqG8JzO2KGL+AizD70Q==}
 
   css-line-break@2.1.0:
     resolution: {integrity: sha512-FHcKFCZcAha3LwfVBhCQbW2nCNbkZXn7KVUJcsT5/P8YmfsVja0FMPJr0B903j/E69HUphKiV9iQArX8SDYA4w==}
@@ -4098,8 +4110,8 @@ packages:
     peerDependencies:
       strophe.js: ^1.2.12
 
-  strophejs-plugin-stream-management@https://codeload.github.com/jitsi/strophejs-plugin-stream-management/tar.gz/001cf02bef2357234e1ac5d163611b4d60bf2b6a:
-    resolution: {tarball: https://codeload.github.com/jitsi/strophejs-plugin-stream-management/tar.gz/001cf02bef2357234e1ac5d163611b4d60bf2b6a}
+  strophejs-plugin-stream-management@git+https://git@github.com:jitsi/strophejs-plugin-stream-management.git#001cf02bef2357234e1ac5d163611b4d60bf2b6a:
+    resolution: {commit: 001cf02bef2357234e1ac5d163611b4d60bf2b6a, repo: git@github.com:jitsi/strophejs-plugin-stream-management.git, type: git}
     version: 1.0.0
     peerDependencies:
       strophe.js: '>=1.3.4'
@@ -5740,7 +5752,7 @@ snapshots:
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
 
-  '@jitsi/sdp-interop@https://codeload.github.com/jitsi/sdp-interop/tar.gz/4669790bb9020cc8f10c1d1f3823c26b08497547':
+  '@jitsi/sdp-interop@git+https://git@github.com:jitsi/sdp-interop.git#4669790bb9020cc8f10c1d1f3823c26b08497547':
     dependencies:
       lodash.clonedeep: 4.5.0
       sdp-transform: 2.14.1
@@ -5779,7 +5791,7 @@ snapshots:
     dependencies:
       '@jitsi/js-utils': 2.0.0
       '@jitsi/logger': 2.0.0
-      '@jitsi/sdp-interop': https://codeload.github.com/jitsi/sdp-interop/tar.gz/4669790bb9020cc8f10c1d1f3823c26b08497547
+      '@jitsi/sdp-interop': git+https://git@github.com:jitsi/sdp-interop.git#4669790bb9020cc8f10c1d1f3823c26b08497547
       '@jitsi/sdp-simulcast': 0.4.0
       async: 3.2.2
       base64-js: 1.5.1
@@ -5792,7 +5804,7 @@ snapshots:
       sdp-transform: 2.14.1
       strophe.js: 1.4.2
       strophejs-plugin-disco: 0.0.2(strophe.js@1.4.2)
-      strophejs-plugin-stream-management: https://codeload.github.com/jitsi/strophejs-plugin-stream-management/tar.gz/001cf02bef2357234e1ac5d163611b4d60bf2b6a(strophe.js@1.4.2)
+      strophejs-plugin-stream-management: git+https://git@github.com:jitsi/strophejs-plugin-stream-management.git#001cf02bef2357234e1ac5d163611b4d60bf2b6a(strophe.js@1.4.2)
       uuid: 8.3.2
       webrtc-adapter: 8.1.0
     transitivePeerDependencies:
@@ -5800,6 +5812,8 @@ snapshots:
       - utf-8-validate
 
   '@microsoft/fetch-event-source@2.0.1': {}
+
+  '@muguilin/xf-voice-dictation@1.0.1': {}
 
   '@mui/core-downloads-tracker@6.4.7': {}
 
@@ -7030,6 +7044,8 @@ snapshots:
       path-key: 3.1.1
       shebang-command: 2.0.0
       which: 2.0.2
+
+  crypto-js@4.2.0: {}
 
   css-line-break@2.1.0:
     dependencies:
@@ -9056,7 +9072,7 @@ snapshots:
     dependencies:
       strophe.js: 1.4.2
 
-  strophejs-plugin-stream-management@https://codeload.github.com/jitsi/strophejs-plugin-stream-management/tar.gz/001cf02bef2357234e1ac5d163611b4d60bf2b6a(strophe.js@1.4.2):
+  strophejs-plugin-stream-management@git+https://git@github.com:jitsi/strophejs-plugin-stream-management.git#001cf02bef2357234e1ac5d163611b4d60bf2b6a(strophe.js@1.4.2):
     dependencies:
       strophe.js: 1.4.2
 

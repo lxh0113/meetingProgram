@@ -411,7 +411,7 @@ onMounted(async () => {
       processorRef.value = processor;
 
       // 初始化 WebSocket
-      wsRef.value = new WebSocket("ws://10.251.39.158:876/");
+      wsRef.value = new WebSocket("ws://192.168.189.12:5000/ws/asr");
       wsRef.value.onopen = () => {
         console.log("WebSocket 连接已建立");
       };

@@ -52,13 +52,25 @@
 </template>
 
 <script lang="ts" setup>
-import { DataLine, HomeFilled, Plus, Refresh, Search } from "@element-plus/icons-vue";
+import {
+  DataLine,
+  HomeFilled,
+  Plus,
+  Refresh,
+  Search,
+} from "@element-plus/icons-vue";
 import ForumCard from "./components/forumCard.vue";
 import { onMounted, ref } from "vue";
-import { getPostsAPI, searchForumAPI } from "@/apis/forum";
+import {
+  getPostsAPI,
+  getRecommendForumAPI,
+  searchForumAPI,
+} from "@/apis/forum";
 import { ElMessage } from "element-plus";
 import type { Post } from "@/types/home";
+import { useUserStore } from "@/stores/userStore";
 
+const userStore = useUserStore();
 const postList = ref<Array<Post>>([]);
 
 const getForum = async () => {
@@ -67,10 +79,11 @@ const getForum = async () => {
     return;
   }
 
-  const res = await getPostsAPI();
+  const res = await getRecommendForumAPI(userStore.user.id);
 
-  if (res.data.code === 200) {
-    postList.value = res.data.data;
+  if (res.status === 200) {
+    
+    postList.value = res.data.recommended_posts;
   } else {
     ElMessage.error("获取出错");
   }

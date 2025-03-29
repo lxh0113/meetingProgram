@@ -31,13 +31,13 @@ const getSignAPI = () => {
 let sign = "";
 
 export async function getSign() {
-  if (sign !== "") return sign;
+  // if (sign !== "") return sign;
 
-  const res = await getSignAPI();
+  // const res = await getSignAPI();
 
-  if (res.data.code === 200) {
-    sign = res.data.data;
-  }
+  // if (res.data.code === 200) {
+  //   sign = res.data.data;
+  // }
 
   return sign;
 }
