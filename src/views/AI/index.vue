@@ -61,7 +61,10 @@
           v-model="input"
           placeholder="请输入你的问题..."
         />
-        <button @click="chooseAsk">{{ buttonText[choose] }}</button>
+        <button v-if="choose != 'audio'" @click="chooseAsk">
+          {{ buttonText[choose] }}
+        </button>
+        <button v-else @click="startRecording">{{ audioButton }}</button>
         <el-popover placement="top" :width="500" trigger="click">
           <template #reference>
             <button>更多操作</button>
@@ -94,7 +97,7 @@
                 <el-select v-model="choose" style="width: 200px" placeholder="">
                   <el-option label="提问" value="ask" />
                   <el-option label="检索问答" value="rag" />
-
+                  <el-option label="语音交互" value="audio" />
                   <!-- <el-option label="检索原文" value="search" />
                   <el-option label="检索问答" value="chat" /> -->
                   <el-option label="文档创作" value="creation" />
@@ -137,6 +140,7 @@
         </el-table>
       </div>
     </div>
+    <audio ref="audioRef" hidden :src="audioSrc" controls></audio>
   </div>
 </template>
 
@@ -176,6 +180,7 @@ const buttonText = ref<Record<string, string>>({
   ask: "提问",
   rag: "检索问答",
   search: "检索全文",
+  audio: "语音交互",
   chat: "检索问答",
   creation: "文档创作",
   trans: "文档翻译",
@@ -212,6 +217,8 @@ const chooseAsk = async () => {
       break;
     case "rag":
       startRag();
+      break;
+    case "audio":
       break;
     case "search":
       startSearch();
@@ -532,6 +539,188 @@ const toAsk = (str: string) => {
 onMounted(async () => {
   header = await getHeaders();
 });
+
+// 语音交互回答
+
+import { XfVoiceDictation } from "@muguilin/xf-voice-dictation";
+
+let times: any = null;
+const audioButton = ref<string>("点我开始");
+
+// 实例化迅飞语音听写（流式版）WebAPI
+
+const xfVoice = new XfVoiceDictation({
+  APPID: "f17e53d0",
+  APISecret: "MmNkMjBkZDFiY2RjMGU5ZjdkYTVjMDBh",
+  APIKey: "f90a475bbf4eac0d8eb57524cbed229e",
+  url: "wss://iat-api.xfyun.cn/v2/iat",
+
+  // 监听录音状态变化回调
+  onWillStatusChange: function (oldStatus, newStatus) {
+    // 可以在这里进行页面中一些交互逻辑处理：如：倒计时（语音听写只有60s）,录音的动画，按钮交互等！
+    console.log("识别状态：", oldStatus, newStatus);
+
+    if (newStatus === "init") {
+      // 初始化
+      audioButton.value = "开始识别";
+    } else if (newStatus === "ing") {
+      // 进行中
+      audioButton.value = "正在监听中";
+    } else if (newStatus === "end") {
+      // 已结束
+      audioButton.value = "提问中";
+      audioChat();
+    }
+  },
+
+  // 监听识别结果的变化回调
+  onTextChange: function (text: string) {
+    // 可以在这里进行页面中一些交互逻辑处理：如将文本显示在页面中
+    console.log("识别内容：", text);
+
+    input.value = text;
+
+    // 如果3秒钟内没有说话，就自动关闭（60s后也会自动关闭）
+    if (text) {
+      clearTimeout(times);
+      times = setTimeout(() => xfVoice.stop(), 3000);
+    }
+  },
+
+  // 监听识别错误回调
+  onError: function (error: any) {
+    console.log("错误信息：", error);
+  },
+});
+
+// 调用开始语音识别！
+const startRecording = () => {
+  xfVoice.start();
+};
+
+import Recorder from "js-audio-recorder";
+
+onMounted(() => {
+  // handleStart()
+});
+
+// 语音合成模块
+import axios from "axios";
+import qs from "qs";
+import type { S } from "mockjs";
+// import { HZRecorder } from "./utils/recorder";
+
+// 提示
+const openMsg = (message, type) => {
+  ElMessage({
+    message,
+    type,
+  });
+};
+
+// 1.获取AccessToken
+// client_id是你创建的应用的API Key，client_secret是你创建应用的Secret Key
+const client_id = ref("oQEDes0o2TsfOR8N5XCkrtXi");
+const client_secret = ref("VYLYGTe9K7F062cOBXvAVRLO9ZCFYHIJ");
+
+const handleGetAccessToken = async () => {
+  try {
+    const option = {
+      grant_type: "client_credentials",
+      client_id: client_id.value,
+      client_secret: client_secret.value,
+    };
+    const res = await axios.post("/oauth/2.0/token", qs.stringify(option));
+    if (res.status !== 200) {
+      return openMsg(res.statusText, "warning");
+    }
+    // openMsg("获取token成功", "success");
+    localStorage.setItem("access_token", res.data.access_token);
+    client_id.value = "oQEDes0o2TsfOR8N5XCkrtXi";
+    client_secret.value = "VYLYGTe9K7F062cOBXvAVRLO9ZCFYHIJ";
+  } catch (error) {
+    console.log(error);
+  }
+};
+
+// 2.语音合成接口调用
+// per配音角色
+const per = ref("111");
+let audioSrc = ref("");
+let audioRef = ref(null);
+
+const handleTextToAudio = async (content: string) => {
+  const token = localStorage.getItem("access_token");
+  if (!token) {
+    return openMsg("请先获取token！", "warning");
+  }
+  textToAudio(token, content);
+};
+const textToAudio = async (token: any, content: string) => {
+  const option = {
+    tex: content,
+    tok: token,
+    cuid: `${Math.floor(Math.random() * 1000000)}`,
+    ctp: "1",
+    lan: "zh",
+    per: per.value,
+  };
+  const res = await axios.post("/text2audio", qs.stringify(option), {
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    responseType: "blob",
+  });
+  if (res.status !== 200) {
+    return openMsg(res.statusText, "warning");
+  } else {
+    audioSrc.value = URL.createObjectURL(res.data);
+
+    let audio = new Audio(audioSrc.value);
+    audio.play();
+
+    audio.addEventListener("ended", () => {});
+  }
+};
+
+onMounted(() => {
+  handleGetAccessToken();
+});
+
+const audioChat = async () => {
+
+  preStart()
+  // 调用大模型文档
+
+  const sse = new SSEService();
+
+  sse.connect(
+    API_ENDPOINTS.EXECUTE,
+    "POST",
+    {
+      sid: uuidv4(),
+      id: agentId,
+      input: input.value,
+      stream: true,
+    },
+    (event) => {
+      // input.value = "";
+      // console.log(event)
+      isLoading.value = false;
+
+      // console.log(event.data);
+      let data = JSON.parse(event.data);
+      // console.log(data);
+
+      messageList.value[messageList.value.length - 1].content +=
+        data.data.content || "";
+    },
+    header,
+    () => {
+      let content=messageList.value[messageList.value.length-1].content
+      console.log(content)
+      handleTextToAudio(content);
+    }
+  );
+};
 </script>
 
 <style lang="scss" scoped>

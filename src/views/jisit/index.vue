@@ -32,7 +32,7 @@
     @open="handleOverlay"
     title="智通精灵"
   >
-    <el-tabs tab-position="left" style="height: 500px" class="demo-tabs">
+    <el-tabs tab-position="left" style="min-height: 700px" class="demo-tabs">
       <el-tab-pane label="智通会话">
         <div
           style="
@@ -126,7 +126,7 @@
 
       <el-tab-pane label="智能总结">
         <div style="display: flex; align-items: center">
-          <button type="button" class="button">
+          <button type="button" @click="getMeetingSummary" class="button">
             <span class="fold"></span>
             <div class="points_wrapper">
               <i class="point"></i>
@@ -160,10 +160,26 @@
           <el-button text="plain" type="primary" @click="$router.push('/view')"
             >导出成文档</el-button
           >
+          <div v-if="aiSummary" class="loadding">
+            <img
+              style="width: 80px; height: 80px"
+              src="../../assets/img/ai.gif"
+              alt=""
+            />
+          </div>
         </div>
+        <div
+          v-if="!aiSummary"
+          class="summary"
+          v-html="md.render(summary)"
+        ></div>
       </el-tab-pane>
 
-      <el-tab-pane label="代办事项"></el-tab-pane>
+      <el-tab-pane label="代办事项">
+        <el-button type="primary" @click="getCurrentToDo"
+          >获取当前代办</el-button
+        >
+      </el-tab-pane>
 
       <el-tab-pane label="会议设置">
         <el-form label-position="left" :data="meetingSettings">
@@ -223,6 +239,43 @@
           </el-table-column>
         </el-table>
       </el-tab-pane>
+      <el-tab-pane label="发言稿">
+        <el-form :data="speechData" label-width="80px">
+          <el-form-item label="核心目标">
+            <el-input
+              v-model="speechData.coreGoal"
+              placeholder="请输入核心目标"
+            ></el-input>
+          </el-form-item>
+          <el-form-item label="会议类型">
+            <el-input
+              v-model="speechData.meetingType"
+              placeholder="请输入会议类型"
+            ></el-input>
+          </el-form-item>
+          <el-form-item label="重点内容">
+            <el-input
+              v-model="speechData.keyContent"
+              placeholder="请输入重点内容"
+            ></el-input>
+          </el-form-item>
+          <el-form-item label="字数限制">
+            <el-input
+              v-model="speechData.wordsNumber"
+              placeholder="请输入字数"
+            ></el-input>
+          </el-form-item>
+        </el-form>
+        <el-button type="primary" @click="getSpeech">生成发言稿</el-button>
+        <div v-if="aiSummary" class="loadding">
+          <img
+            style="width: 80px; height: 80px"
+            src="../../assets/img/ai.gif"
+            alt=""
+          />
+        </div>
+        <div v-else class="summary" v-html="md.render(speech)"></div>
+      </el-tab-pane>
 
       <el-tab-pane label="推荐会议"></el-tab-pane>
     </el-tabs>
@@ -245,7 +298,12 @@ import type { AgentMessageList, User } from "@/types/home";
 import { SSEService } from "@/utils/sse";
 import { v4 as uuidv4 } from "uuid";
 import { API_ENDPOINTS } from "@/apis/ai/aiSse";
-import { agentId, getHeaders } from "@/apis/ai/base";
+import {
+  agentId,
+  getHeaders,
+  speechAgentId,
+  summaryAgentId,
+} from "@/apis/ai/base";
 import { copyText } from "vue3-clipboard";
 
 import MarkdownIt from "markdown-it";
@@ -375,7 +433,9 @@ onMounted(async () => {
 
 //处理音频流转文字数据
 
-import { computed, Ref } from 'vue';
+const audioText = ref("");
+
+import { computed, Ref } from "vue";
 
 interface BaiduSpeechConfig {
   appid: string | number;
@@ -393,7 +453,9 @@ interface BaiduSpeechResult {
   stopRecognition: () => void;
 }
 
-const useBaiduSpeechRecognition = (config: BaiduSpeechConfig): BaiduSpeechResult => {
+const useBaiduSpeechRecognition = (
+  config: BaiduSpeechConfig
+): BaiduSpeechResult => {
   const status = ref<"CLOSED" | "CONNECTING" | "OPEN" | "CLOSING">("CLOSED");
   const result = ref<string>("");
   const error = ref<string | null>(null);
@@ -411,7 +473,8 @@ const useBaiduSpeechRecognition = (config: BaiduSpeechConfig): BaiduSpeechResult
   const registerAudioWorklet = async (): Promise<void> => {
     try {
       // 关键路径配置：使用绝对路径确保生产环境能加载
-      const workletUrl = new URL("../test/audio-processor.js", import.meta.url).href;
+      const workletUrl = new URL("../test/audio-processor.js", import.meta.url)
+        .href;
       await audioContext.value!.audioWorklet.addModule(workletUrl);
     } catch (err) {
       console.error("加载AudioWorklet失败:", err);
@@ -458,13 +521,15 @@ const useBaiduSpeechRecognition = (config: BaiduSpeechConfig): BaiduSpeechResult
 
   // 处理WebSocket消息
   const handleMessage = (event: MessageEvent): void => {
-    console.log('处理消息中');
+    console.log("处理消息中");
     try {
       const data = JSON.parse(event.data);
       console.log(data);
       switch (data.type) {
         case "MID_TEXT":
-          result.value = data.result || "";
+          //result.value = data.result || "";
+          captions.value = data.result || "";
+          audioText.value += data.result || "";
           break;
         case "HEARTBEAT":
           break;
@@ -529,7 +594,7 @@ const useBaiduSpeechRecognition = (config: BaiduSpeechConfig): BaiduSpeechResult
           );
           status.value = "OPEN";
           retryCount.value = 0;
-          console.log('WebSocket connected');
+          console.log("WebSocket connected");
         } catch (err) {
           error.value = (err as Error).message;
           ws.value!.close();
@@ -623,15 +688,13 @@ const toggleRecognition = (): void => {
   isRecording.value ? stopRecognition() : startRecognition();
 };
 
-onMounted(()=>{
-  startRecognition()
-})
+onMounted(() => {
+  startRecognition();
+});
 
 onUnmounted(() => {
   stopRecognition();
 });
-
-
 
 const route = useRoute();
 
@@ -739,6 +802,84 @@ const toExcel = () => {
   const wb = xlsx.utils.table_to_book(tableDom);
   xlsx.writeFile(wb, "签到情况.xlsx");
 };
+
+const summary = ref("");
+const aiSummary = ref(false);
+
+// 会议总结模块
+const getMeetingSummary = () => {
+  aiSummary.value = true;
+
+  const sse = new SSEService();
+
+  sse.connect(
+    API_ENDPOINTS.EXECUTE,
+    "POST",
+    {
+      sid: uuidv4(),
+      id: summaryAgentId,
+      input: audioText.value,
+      stream: true,
+    },
+    (event) => {
+      // console.log(event)
+      aiSummary.value = false;
+
+      // console.log(event.data);
+      let data = JSON.parse(event.data);
+      console.log(data);
+
+      summary.value += data.data.content || "";
+    },
+    header.value
+  );
+};
+// 代办事项处理
+
+const todoTable = ref([]);
+
+const getCurrentToDo = () => {
+  aiSummary.value = true;
+};
+
+// 生成发言稿
+
+const speech = ref("");
+const speechData = ref({
+  coreGoal: "",
+  meetingType: "",
+  keyContent: "",
+  wordsNumber: "",
+});
+
+const getSpeech = () => {
+  aiSummary.value = true;
+
+  const sse = new SSEService();
+
+  sse.connect(
+    API_ENDPOINTS.EXECUTE,
+    "POST",
+    {
+      sid: uuidv4(),
+      id: speechAgentId,
+      input: audioText.value,
+      ...speechData.value,
+      stream: true,
+    },
+    (event) => {
+      // console.log(event)
+      aiSummary.value = false;
+
+      // console.log(event.data);
+      let data = JSON.parse(event.data);
+      console.log(data);
+
+      speech.value += data.data.content || "";
+    },
+    header.value
+  );
+};
 </script>
 
 <style lang="scss" scoped>
@@ -772,7 +913,7 @@ const toExcel = () => {
 }
 
 .messagesBox {
-  min-height: 380px;
+  min-height: 580px;
   height: 380px;
   display: flex;
   flex-direction: column;

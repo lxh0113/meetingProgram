@@ -51,6 +51,9 @@ export default defineConfig({
       // 字符串简写写法：http://localhost:5173/oauth -> https://aip.baidubce.com/oauth
       "/open/api/v2": "https://www.das-ai.com",
       "/dasChat": "https://www.das-ai.com/dasChat",
+       "/oauth": "https://aip.baidubce.com",
+       "/text2audio": "https://tsn.baidu.com",
+       "/server_api": "http://vop.baidu.com",
       // "/rag": {
       //   target:"http://10.251.39.158:8000/",
       //   rewrite:(path)=>path.replace(/^\/rag/, "")

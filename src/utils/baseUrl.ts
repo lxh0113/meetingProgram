@@ -1,5 +1,5 @@
-// export const baseUrl = "http://localhost:8079";
-export const baseUrl = "http://192.168.189.12:5000/";
+export const baseUrl = "http://localhost:8079";
+// export const baseUrl = "http://192.168.189.12:5000/";
 
 export const mockUrl = "http://localhost:8079/mock";
 

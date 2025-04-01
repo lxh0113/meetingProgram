@@ -86,6 +86,9 @@ importers:
       html2canvas:
         specifier: ^1.4.1
         version: 1.4.1
+      js-audio-recorder:
+        specifier: ^1.0.7
+        version: 1.0.7
       jspdf:
         specifier: ^3.0.1
         version: 3.0.1
@@ -107,6 +110,9 @@ importers:
       pizzip:
         specifier: ^3.1.8
         version: 3.1.8
+      qs:
+        specifier: ^6.14.0
+        version: 6.14.0
       react:
         specifier: ^18.3.1
         version: 18.3.1
@@ -2983,6 +2989,9 @@ packages:
   jquery@3.6.0:
     resolution: {integrity: sha512-JVzAR/AjBvVt2BmYhxRCSYysDsPcssdmTFnzyLEts9qNwmjmu4JTAMYubEfwVOSwpQ1I1sKKFcxhZCI2buerfw==}
 
+  js-audio-recorder@1.0.7:
+    resolution: {integrity: sha512-JiDODCElVHGrFyjGYwYyNi7zCbKk9va9C77w+zCPMmi4C6ix7zsX2h3ddHugmo4dOTOTCym9++b/wVW9nC0IaA==}
+
   js-beautify@1.15.1:
     resolution: {integrity: sha512-ESjNzSlt/sWE8sciZH8kBF8BPlwXPwhR6pWKAw8bw4Bwj+iZcnKW6ONWUutJ7eObuBZQpiIb8S7OYspWrKt7rA==}
     engines: {node: '>=14'}
@@ -3512,6 +3521,10 @@ packages:
   punycode@2.3.1:
     resolution: {integrity: sha512-vYt7UD1U9Wg6138shLtLOvdAu+8DsC/ilFtEVHcH+wydcSpNE20AfSOduf6MkRFahL5FY7X1oU7nKVZFtfq8Fg==}
     engines: {node: '>=6'}
+
+  qs@6.14.0:
+    resolution: {integrity: sha512-YWWTjgABSKcvs/nWBi9PycY/JiPJqOD4JA6o9Sej2AtvSGarXxKC3OQSk4pAarbdQlKAh5D4FCQkJNkW+GAn3w==}
+    engines: {node: '>=0.6'}
 
   queue-microtask@1.2.3:
     resolution: {integrity: sha512-NuaNSa6flKT5JaSYQzJok04JzTL1CA6aGhv5rfLW3PgqA+M2ChpZQnAC8h8i4ZFkBS8X5RqkDBHA7r4hej3K9A==}
@@ -4110,8 +4123,8 @@ packages:
     peerDependencies:
       strophe.js: ^1.2.12
 
-  strophejs-plugin-stream-management@git+https://git@github.com:jitsi/strophejs-plugin-stream-management.git#001cf02bef2357234e1ac5d163611b4d60bf2b6a:
-    resolution: {commit: 001cf02bef2357234e1ac5d163611b4d60bf2b6a, repo: git@github.com:jitsi/strophejs-plugin-stream-management.git, type: git}
+  strophejs-plugin-stream-management@https://codeload.github.com/jitsi/strophejs-plugin-stream-management/tar.gz/001cf02bef2357234e1ac5d163611b4d60bf2b6a:
+    resolution: {tarball: https://codeload.github.com/jitsi/strophejs-plugin-stream-management/tar.gz/001cf02bef2357234e1ac5d163611b4d60bf2b6a}
     version: 1.0.0
     peerDependencies:
       strophe.js: '>=1.3.4'
@@ -5804,7 +5817,7 @@ snapshots:
       sdp-transform: 2.14.1
       strophe.js: 1.4.2
       strophejs-plugin-disco: 0.0.2(strophe.js@1.4.2)
-      strophejs-plugin-stream-management: git+https://git@github.com:jitsi/strophejs-plugin-stream-management.git#001cf02bef2357234e1ac5d163611b4d60bf2b6a(strophe.js@1.4.2)
+      strophejs-plugin-stream-management: https://codeload.github.com/jitsi/strophejs-plugin-stream-management/tar.gz/001cf02bef2357234e1ac5d163611b4d60bf2b6a(strophe.js@1.4.2)
       uuid: 8.3.2
       webrtc-adapter: 8.1.0
     transitivePeerDependencies:
@@ -7841,6 +7854,8 @@ snapshots:
 
   jquery@3.6.0: {}
 
+  js-audio-recorder@1.0.7: {}
+
   js-beautify@1.15.1:
     dependencies:
       config-chain: 1.1.13
@@ -8347,6 +8362,10 @@ snapshots:
   punycode.js@2.3.1: {}
 
   punycode@2.3.1: {}
+
+  qs@6.14.0:
+    dependencies:
+      side-channel: 1.1.0
 
   queue-microtask@1.2.3: {}
 
@@ -9072,7 +9091,7 @@ snapshots:
     dependencies:
       strophe.js: 1.4.2
 
-  strophejs-plugin-stream-management@git+https://git@github.com:jitsi/strophejs-plugin-stream-management.git#001cf02bef2357234e1ac5d163611b4d60bf2b6a(strophe.js@1.4.2):
+  strophejs-plugin-stream-management@https://codeload.github.com/jitsi/strophejs-plugin-stream-management/tar.gz/001cf02bef2357234e1ac5d163611b4d60bf2b6a(strophe.js@1.4.2):
     dependencies:
       strophe.js: 1.4.2
 

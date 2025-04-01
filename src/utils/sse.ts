@@ -3,6 +3,7 @@ import { ElMessage } from "element-plus";
 
 // 定义消息回调类型
 type MessageHandler = (data: any) => void;
+type CloseHandler = () => void;
 
 export class SSEService {
   async connect(
@@ -10,7 +11,8 @@ export class SSEService {
     method: "GET" | "POST",
     body: object,
     onMessageHandler: MessageHandler,
-    myHeader?: Record<string, string> // 键值对的形式
+    myHeader?: Record<string, string>, // 键值对的形式,
+    onHandleClose?:CloseHandler
   ) {
     return await fetchEventSource(url, {
       method: method,
@@ -30,7 +32,7 @@ export class SSEService {
         ElMessage.error("SSE连接出错: " + error);
       },
       onclose(){
-
+        if(onHandleClose) onHandleClose()
       }
     });
   }
