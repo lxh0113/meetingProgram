@@ -47,3 +47,4 @@ export const isHealthAPI = () => {
     method: "GET",
   });
 };
+

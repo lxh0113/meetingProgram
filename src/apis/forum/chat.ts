@@ -1,72 +1,85 @@
 import http from "@/utils/http";
 
-export const createConversationAPI = (
-  title: string,
-  search_enabled: boolean
-) => {
+// 提取公共前缀
+const API_BASE = "/form";
+
+export const createConversationAPI = (title: string, user_id: string) => {
   return http({
-    url: "/api/v1/chat/conversations/",
+    url: API_BASE + "/chat/conversations/",
     method: "POST",
     params: {
       title,
-      search_enabled,
+      user_id,
     },
   });
 };
 
-export const getAllConversationsAPI = () => {
+export const getAllConversationsAPI = (user_id: string) => {
   return http({
-    url: "/api/v1/chat/conversations/",
+    url: API_BASE + "/chat/conversations/",
     method: "GET",
+    params: {
+      user_id,
+    },
   });
 };
 
-export const getConversationByIdAPI = (conversation_id: number) => {
+export const getConversationByIdAPI = (
+  conversation_id: number,
+  user_id: string
+) => {
   return http({
-    url: "/api/v1/chat/conversations/" + conversation_id,
+    url: API_BASE + "/chat/conversations/" + conversation_id,
     method: "GET",
+    params: {
+      user_id,
+    },
   });
 };
 
 export const sendMessageAPI = (
   conversation_id: number,
-  search_enabled: boolean
+  user_id: string
 ) => {
   return http({
-    url: "/api/v1/chat/conversations/" + conversation_id + "/messages",
+    url: API_BASE + "/chat/conversations/" + conversation_id + "/messages",
     method: "POST",
     params: {
-      search_enabled,
+      user_id,
     },
   });
 };
 
 // 对话历史
-export const deleteConversationByIdAPI = (conversation_id: number) => {
+export const deleteConversationByIdAPI = (conversation_id: number,user_id:string) => {
   return http({
-    url: "/api/v1/history/conversations/" + conversation_id,
+    url: API_BASE + "/history/conversations/" + conversation_id,
     method: "DELETE",
+    params:{
+      user_id
+    }
   });
 };
 
 export const updateConversationTitleAPI = (
   conversation_id: number,
-  title: string
+  title: string,
+  user_id:string
 ) => {
   return http({
-    url: "/api/v1/history/conversations/" + conversation_id,
+    url: API_BASE + "/history/conversations/" + conversation_id,
     method: "PUT",
     params: {
       title,
+      user_id
     },
   });
 };
 
 // 联网搜索
-
 export const internetAPI = (query: string) => {
   return http({
-    url: "/api/v1/search/web",
+    url: API_BASE + "/search/web",
     method: "GET",
     params: {
       query,
@@ -79,7 +92,8 @@ export const updateSearchInternetAPI = (
   search_enabled: boolean
 ) => {
   return http({
-    url: "/api/v1/search/conversations/" + conversation_id + "/search-setting",
+    url:
+      API_BASE + "/search/conversations/" + conversation_id + "/search-setting",
     method: "PUT",
     params: {
       search_enabled,

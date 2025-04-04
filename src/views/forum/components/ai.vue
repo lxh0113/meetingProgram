@@ -156,6 +156,7 @@ import { getForumAIUrl } from "@/utils/baseUrl";
 import { ElMessage } from "element-plus";
 import MarkdownIt from "markdown-it";
 import { SSEService } from "@/utils/sse";
+import { useUserStore } from "@/stores/userStore";
 let md: MarkdownIt = new MarkdownIt();
 
 let scrollRef = ref();
@@ -166,6 +167,7 @@ const sendText = ref("");
 const dialogVisible = ref(false);
 const isInternet = ref(false);
 
+const userStore=useUserStore()
 const searchText = ref("");
 
 watch(isInternet, (oldValue, newValue) => {
@@ -193,10 +195,10 @@ function handleOverlay() {
 const tableData = ref<ConversationList>([]);
 
 const getConversations = async () => {
-  const res = await getAllConversationsAPI();
+  const res = await getAllConversationsAPI(userStore.user.id+"");
 
-  if (res.status === 200) {
-    tableData.value = res.data;
+  if (res.data.code === 200) {
+    tableData.value = res.data.data;
   }
 };
 
@@ -216,15 +218,15 @@ const searchFormInternet = async () => {
 const currentMessage = ref<AIMessageList>([]);
 
 const getCurrentMessage = async (id: number) => {
-  const res = await getConversationByIdAPI(id);
+  const res = await getConversationByIdAPI(id,userStore.user.id+"");
 
   console.log(res);
-  if (res.status === 200) {
-    currentMessage.value = res.data.messages;
+  if (res.data.code === 200) {
+    currentMessage.value = res.data.data.messages;
     currentConversition.value = {
-      id: res.data.id,
-      title: res.data.title,
-      search_enabled: res.data.search_enabled,
+      id: res.data.data.id,
+      title: res.data.data.title,
+      search_enabled: res.data.data.search_enabled,
     };
   }
 };
@@ -247,10 +249,10 @@ const currentConversition = ref<CurrentConversation>();
 
 // 创建会话
 const createConversation = async (title: string, isInternet: boolean) => {
-  const res = await createConversationAPI(title, isInternet);
+  const res = await createConversationAPI(title,userStore.user.id+"");
 
-  if (res.status === 200) {
-    currentConversition.value = res.data;
+  if (res.data.code === 201) {
+    currentConversition.value = res.data.data;
   } else {
     ElMessage.error("连接服务器失败");
   }
@@ -336,7 +338,7 @@ const sendMessage = async () => {
 
   sse.connect(
     getForumAIUrl(currentConversition.value!.id) +
-      `?search_enabled=${isInternet.value}`,
+      `?user_id=${userStore.user.id}`,
     "POST",
     {
       query: sendText.value,
@@ -418,10 +420,11 @@ const saveConversationId = (id: number) => {
 const updateConversationTitle = async () => {
   const res = await updateConversationTitleAPI(
     currentConversationId.value,
-    title.value
+    title.value,
+    userStore.user.id+""
   );
 
-  if (res.status === 200) {
+  if (res.data.code === 200) {
     getConversations();
     ElMessage.success("更新成功");
   } else {
@@ -432,9 +435,9 @@ const updateConversationTitle = async () => {
 };
 
 const deleteConversation = async (id: number) => {
-  const res = await deleteConversationByIdAPI(id);
+  const res = await deleteConversationByIdAPI(id,userStore.user.id+"");
 
-  if (res.status === 200) {
+  if (res.data.code === 200) {
     tableData.value = tableData.value.filter((item) => {
       return item.id !== id;
     });

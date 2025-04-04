@@ -47,13 +47,14 @@
             <el-input v-model="userData.email" placeholder=""></el-input>
           </el-form-item>
           <el-form-item label="电话号码" style="flex: 1">
-            <el-input v-model="userData.phone" placeholder=""></el-input>
+            <el-input v-model="userData.phone" :auto-complete="false" placeholder=""></el-input>
           </el-form-item>
         </div>
         <div class="twoInput">
           <el-form-item label="新密码" style="flex: 1; margin-right: 20px">
             <el-input
               v-model="newPassword"
+              :auto-complete="false"
               type="password"
               placeholder=""
             ></el-input>

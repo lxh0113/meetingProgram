@@ -27,7 +27,7 @@
     :close-on-press-escape="false"
     :close-on-click-modal="false"
     :modal="false"
-    :width="800"
+    :width="900"
     style="min-height: 500px"
     @open="handleOverlay"
     title="智通精灵"
@@ -80,7 +80,18 @@
             >
             </el-input>
             <div class="submit">
-              <el-button type="primary" @click="startAgent">发送</el-button>
+              <el-popover placement="top" :width="400" trigger="hover">
+                <template #reference>
+                  <el-button type="primary" @click="startAgent">提问</el-button>
+                </template>
+                <el-button type="primary" @click="">rag检索</el-button>
+                <el-button type="primary" @click="startCreation"
+                  >文档创作</el-button
+                >
+                <el-button type="primary" @click="startTrans"
+                  >文档翻译</el-button
+                >
+              </el-popover>
             </div>
           </div>
         </div>
@@ -157,7 +168,7 @@
               >AI 智能总结</span
             >
           </button>
-          <el-button text="plain" type="primary" @click="$router.push('/view')"
+          <el-button text="plain" type="primary" @click="toView"
             >导出成文档</el-button
           >
           <div v-if="aiSummary" class="loadding">
@@ -170,15 +181,79 @@
         </div>
         <div
           v-if="!aiSummary"
-          class="summary"
+          style="margin-top: 20px"
           v-html="md.render(summary)"
         ></div>
       </el-tab-pane>
 
       <el-tab-pane label="代办事项">
         <el-button type="primary" @click="getCurrentToDo"
-          >获取当前代办</el-button
+          >获取当天代办</el-button
         >
+        <el-button type="primary" @click="isAdd = true">添加代办</el-button>
+        <div v-if="isAdd" style="display: flex; margin: 20px 0">
+          <el-input
+            v-model="addTodoData.title"
+            placeholder="请输入标题"
+          ></el-input>
+          <el-input
+            v-model="addTodoData.content"
+            style="margin: 0 20px"
+            placeholder="请输入内容"
+          ></el-input>
+          <el-button type="plain" @click="isAdd = false">取消</el-button>
+          <el-button type="primary" @click="addTodo">确认</el-button>
+        </div>
+        <div>
+          <el-calendar v-if="isShow" v-model="currentDay">
+            <template #date-cell="{ data }">
+              <p :class="data.isSelected ? 'is-selected' : ''">
+                {{ data.day.split("-").slice(1).join("-") }}
+                {{ data.isSelected ? "✔️" : "" }}
+              </p>
+              <p
+                style="margin-top: 20px; color: red"
+                v-if="toDoNumber(data.day)"
+              >
+                {{ toDoNumber(data.day) }}条代办
+              </p>
+              <!-- <p v-for="item in isHave(data.day)">{{ item.title }}</p> -->
+            </template>
+          </el-calendar>
+
+          <el-timeline-item
+            center
+            style="margin: 0 20px"
+            v-for="(activity, index) in viewCurrentList"
+            :key="index"
+            :timestamp="activity.createTime"
+            placement="top"
+          >
+            <div
+              class="card"
+              style="
+                padding: 20px;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                box-shadow: rgba(100, 100, 111, 0.2) 0px 7px 29px 0px;
+              "
+            >
+              <div class="text" style="margin-right: 20px">
+                <h4 class="itemTitle" style="font-size: 16px">
+                  {{ activity.title }}
+                </h4>
+                <p style="margin-top: 20px">{{ activity.content }}</p>
+              </div>
+              <el-button
+                v-if="activity.status === '0'"
+                @click="finish(activity.id)"
+                type="primary"
+                >完成</el-button
+              >
+            </div>
+          </el-timeline-item>
+        </div>
       </el-tab-pane>
 
       <el-tab-pane label="会议设置">
@@ -261,7 +336,7 @@
           </el-form-item>
           <el-form-item label="字数限制">
             <el-input
-              v-model="speechData.wordsNumber"
+              v-model="speechData.wordsNum"
               placeholder="请输入字数"
             ></el-input>
           </el-form-item>
@@ -274,9 +349,14 @@
             alt=""
           />
         </div>
-        <div v-else class="summary" v-html="md.render(speech)"></div>
+        <div
+          v-else
+          style="font-size: 16px"
+          class="summary"
+          v-html="md.render(speech)"
+        ></div>
       </el-tab-pane>
-
+      <el-tab-pane label="主持人"></el-tab-pane>
       <el-tab-pane label="推荐会议"></el-tab-pane>
     </el-tabs>
   </el-dialog>
@@ -287,6 +367,7 @@ import { applyReactInVue } from "veaury";
 import myReactComponent from "./jisit.tsx"; // 注意组件命名规范
 import { ref, onMounted, onUnmounted } from "vue";
 import {
+  dayjs,
   ElMessage,
   type UploadFile,
   type UploadProps,
@@ -294,7 +375,12 @@ import {
   type UploadUserFile,
 } from "element-plus";
 import { agentExecuteAPI, fileDownloadAPI } from "@/apis/ai/ai.ts";
-import type { AgentMessageList, User } from "@/types/home";
+import type {
+  AgentMessageList,
+  GenerateSpeech,
+  MessageList,
+  User,
+} from "@/types/home";
 import { SSEService } from "@/utils/sse";
 import { v4 as uuidv4 } from "uuid";
 import { API_ENDPOINTS } from "@/apis/ai/aiSse";
@@ -307,12 +393,19 @@ import {
 import { copyText } from "vue3-clipboard";
 
 import MarkdownIt from "markdown-it";
-import { useRoute } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import { getMeetingResourceAPI, getSignDetailsAPI } from "@/apis/meeting.ts";
 import { useMeetingStore } from "@/stores/meetingStore.ts";
 import { Refresh } from "@element-plus/icons-vue";
 import { baseUrl, ragUploadUrl } from "@/utils/baseUrl.ts";
+import {
+  generateSpeechAPI,
+  getConclusionAPI,
+  getMeetingInConclusionAPI,
+} from "@/apis/aiMeeting";
 import { uploadFileAPI } from "@/apis/rag.ts";
+import { DOCUMENT_ENDPOINTS } from "@/apis/ai/pluginsSse";
+
 let md: MarkdownIt = new MarkdownIt();
 import * as xlsx from "xlsx";
 
@@ -427,6 +520,83 @@ const startAgent = async () => {
   );
 };
 
+// 文档创作
+const startCreation = async () => {
+  isLoading.value = true;
+
+  messageList.value.push({
+    role: "user",
+    content: sendText.value,
+  });
+  messageList.value.push({
+    role: "assistant",
+    content: "",
+  });
+
+  const sse = new SSEService();
+
+  sse.connect(
+    DOCUMENT_ENDPOINTS.DOCUMENT_CREATION,
+    "POST",
+    {
+      sid: uuidv4(),
+      prompt:
+        "你是文档专家，可以根据对应要求整理成一个规范，包含标题、段落、总结的文档",
+      stream: true,
+      chunks: [sendText.value],
+    },
+    (event) => {
+      isLoading.value = false;
+
+      // console.log(event.data);
+      let data = JSON.parse(event.data);
+      console.log(data);
+
+      messageList.value[messageList.value.length - 1].content +=
+        data.data.content || "";
+    },
+    header.value
+  );
+};
+
+// 文档翻译
+const startTrans = async () => {
+  isLoading.value = true;
+
+  messageList.value.push({
+    role: "user",
+    content: sendText.value,
+  });
+  messageList.value.push({
+    role: "assistant",
+    content: "",
+  });
+
+  const sse = new SSEService();
+
+  sse.connect(
+    DOCUMENT_ENDPOINTS.DOCUMENT_TRANSLATE,
+    "POST",
+    {
+      sid: uuidv4(),
+      content: sendText.value,
+      translate: "en",
+      stream: true,
+    },
+    (event) => {
+      isLoading.value = false;
+
+      // console.log(event.data);
+      let data = JSON.parse(event.data);
+      console.log(data);
+
+      messageList.value[messageList.value.length - 1].content =
+        data.data.transContent || "";
+    },
+    header.value
+  );
+};
+
 onMounted(async () => {
   header.value = await getHeaders();
 });
@@ -436,6 +606,13 @@ onMounted(async () => {
 const audioText = ref("");
 
 import { computed, Ref } from "vue";
+import { useDownloadStore } from "@/stores/downlowdStore.ts";
+import { useUserStore } from "@/stores/userStore.ts";
+import {
+  addToDoAPI,
+  getMessageInfoAPI,
+  getToDosByYearMonthAPI,
+} from "@/apis/message.ts";
 
 interface BaiduSpeechConfig {
   appid: string | number;
@@ -689,7 +866,7 @@ const toggleRecognition = (): void => {
 };
 
 onMounted(() => {
-  startRecognition();
+  //startRecognition();
 });
 
 onUnmounted(() => {
@@ -773,7 +950,7 @@ const getMeetingResource = async () => {
 };
 
 onMounted(() => {
-  //getMeetingResource();
+  getMeetingResource();
 });
 
 // 查看签到模块
@@ -807,78 +984,136 @@ const summary = ref("");
 const aiSummary = ref(false);
 
 // 会议总结模块
-const getMeetingSummary = () => {
+const getMeetingSummary = async () => {
   aiSummary.value = true;
 
-  const sse = new SSEService();
-
-  sse.connect(
-    API_ENDPOINTS.EXECUTE,
-    "POST",
-    {
-      sid: uuidv4(),
-      id: summaryAgentId,
-      input: audioText.value,
-      stream: true,
-    },
-    (event) => {
-      // console.log(event)
-      aiSummary.value = false;
-
-      // console.log(event.data);
-      let data = JSON.parse(event.data);
-      console.log(data);
-
-      summary.value += data.data.content || "";
-    },
-    header.value
+  //const res = await getMeetingInConclusionAPI(audioText.value);
+  const res = await getMeetingInConclusionAPI(
+    "公司召开第一次总经理办公会议，研究讨论公司经济合同管理、资金管理办法、机关20xx年3-5月份岗位工资发放等事宜。张XX总经理主持，公司领导，总经办、党群办及相关处室负责人参加。现将会议决定事项纪要如下：　一、关于公司经济合同管理办会议讨论了总经办提交的公司经济合同管理办法，认为实施船舶修理、物料配件和办公用品采购对外经济合同管理，有利于加强和规范企业管理。会议原则通过。会议要求，总经办根据会议决定进一步修改完善，发文执行。二、关于职工因私借款规定会议认为，职工因私借款是传统计划经济产物，不能作为文件规定。但是，从关心员工考虑，在职工遇到突到性困难时，公司可以酌情借10000元内的应急款。计财处要制定内部操作程序，严格把关。人力资源处配合。借款者本人要作出还款计划。三、关于公司资金管理办法会议认为计财处提交的公司资金管理办法有利于加强公司资金管理，提高资金使用效率，保障安全生产需要。会议原则通过，计财处修改完善后发文执行四、关于职工工资由银行代发事宜会议听取了计财处提交的关于职工岗位工资和船员伙食费由银行代发的汇报，会议认为银行代发工资是社会发展的必然趋势，既方便船舶和船员领取，又有利于规避存放大额现金的风险。但需要2个月左右的宣传过度期，让职工充分了解接受。会议要求计财处认真做好实施前的准备工作，人力资源处配合，计划下半年实施。五、关于公司机关11月份效益工资发放问题会议听取了人力资源处关于公司机关11月份岗位工资发放标准的建议。会议决定机关员工3-5月份岗位工资发放，对已经下文明确的干部执行新的岗位工资标准，没有下文明确的干部暂维持不变。待三个月考核明确岗位后，一律按新岗位标准发放。会议最后强调，公司机关要加强与运行船舶的沟通，建立公司领导每周上岗接船制度，完善机关管理员工随船工作制度，增强工作的针对性和有效性"
   );
+
+  if (res.status === 200) {
+    summary.value = res.data.data;
+  } else {
+    ElMessage.error("会议总结获取出错");
+  }
+
+  aiSummary.value = false;
 };
+
+const downStore = useDownloadStore();
+const router = useRouter();
+const toView = () => {
+  downStore.setContent(summary.value);
+  window.open("/view");
+};
+
 // 代办事项处理
 
-const todoTable = ref([]);
+const todoList = ref<MessageList>([]);
+const userStore = useUserStore();
+
+const isAdd = ref(false);
+const addTodoData = ref({
+  userId: userStore.user.id,
+  messageId: null,
+  createTime: dayjs().format("YYYY/MM/DD hh:mm:ss"),
+  content: "",
+  title: "",
+});
+
+const addTodo = async () => {
+  const res = await addToDoAPI(
+    addTodoData.value.userId,
+    null,
+    dayjs().format("YYYY/MM/DD hh:mm:ss"),
+    addTodoData.value.title,
+    addTodoData.value.content
+  );
+
+  if (res.data.code === 200) {
+    ElMessage.success("添加成功");
+    isAdd.value = false;
+  } else {
+    ElMessage.error(res.data.message);
+  }
+};
+
+const isShow = ref(true);
+const currentDay = ref("");
+const viewCurrentList = ref<MessageList>([]);
+
+const getTodos = async () => {
+  const res = await getToDosByYearMonthAPI(
+    userStore.user.id,
+    new Date().getFullYear(),
+    new Date().getMonth() + 1
+  );
+
+  if (res.data.code === 200) {
+    todoList.value = res.data.data.messageToDoList;
+    isShow.value = false;
+    setTimeout(() => {
+      isShow.value = true;
+    }, 500);
+  } else {
+    ElMessage.error(res.data.msg);
+  }
+};
+
+const toDoNumber = (day: string) => {
+  return todoList.value.filter(
+    (item) =>
+      dayjs(item.createTime).format("YYYY-MM-DD") === day && item.status === "0"
+  ).length;
+};
+
+const isHave = (day: string) => {
+  return todoList.value.filter(
+    (item) => dayjs(item.createTime).format("YYYY-MM-DD") === day
+  );
+};
+
+const finish = async (id: number) => {
+  const res = await getMessageInfoAPI(id);
+
+  if (res.data.code === 200) {
+    ElMessage.success("完成代办事项");
+
+    getTodos();
+  } else ElMessage.error("失败");
+};
 
 const getCurrentToDo = () => {
-  aiSummary.value = true;
+  viewCurrentList.value = isHave(dayjs(currentDay.value).format("YYYY-MM-DD"));
 };
+
+onMounted(() => {
+  getTodos();
+});
 
 // 生成发言稿
 
 const speech = ref("");
-const speechData = ref({
+const speechData = ref<GenerateSpeech>({
   coreGoal: "",
   meetingType: "",
   keyContent: "",
-  wordsNumber: "",
+  wordsNum: "",
 });
 
-const getSpeech = () => {
+const getSpeech = async () => {
   aiSummary.value = true;
 
-  const sse = new SSEService();
+  const res = await generateSpeechAPI(speechData.value);
 
-  sse.connect(
-    API_ENDPOINTS.EXECUTE,
-    "POST",
-    {
-      sid: uuidv4(),
-      id: speechAgentId,
-      input: audioText.value,
-      ...speechData.value,
-      stream: true,
-    },
-    (event) => {
-      // console.log(event)
-      aiSummary.value = false;
+  if (res.data.status === 200) {
+    speech.value = res.data.data;
+  } else {
+    ElMessage.error("生成发言稿出错了");
+  }
 
-      // console.log(event.data);
-      let data = JSON.parse(event.data);
-      console.log(data);
-
-      speech.value += data.data.content || "";
-    },
-    header.value
-  );
+  aiSummary.value = false;
 };
 </script>
 
@@ -887,6 +1122,10 @@ const getSpeech = () => {
   height: 100vh;
   width: 100vw;
   position: relative;
+
+  .summary {
+    font-size: 16px !important;
+  }
 
   .affixed {
     position: absolute;

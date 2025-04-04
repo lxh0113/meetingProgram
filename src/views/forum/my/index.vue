@@ -8,11 +8,7 @@
     >
       <el-tab-pane label="我的帖子" name="first">
         <div class="forums">
-          <MyForumItem
-            @delete="getMyPost"
-            v-for="item in myPostData"
-            :data="item"
-          />
+          <MyForumItem v-for="item in myPostData" :data="item" />
         </div>
         <div style="margin-top: 20px; display: flex; justify-content: center">
           <el-empty v-if="myPostData.length === 0" description="无数据" />
@@ -25,7 +21,6 @@
             @current-change="getMyPost"
           />
         </div>
-        
       </el-tab-pane>
       <el-tab-pane label="我的点赞" name="second">
         <div class="forums">
@@ -59,7 +54,7 @@
           />
         </div>
       </el-tab-pane>
-      <el-tab-pane label="我的关注" name="forth">
+      <el-tab-pane label="我的关注" name="fourth">
         <div class="forums">
           <ForumCard v-for="item in myStarPostData" :data="item" />
         </div>
@@ -96,20 +91,18 @@ const activeName = ref("first");
 
 const handleClick = (tab: TabsPaneContext, event: Event) => {
   console.log(tab, event);
-};
+  console.log(activeName.value)
 
-watch(activeName, (old, newValue) => {
-  console.log(newValue);
-  if (newValue === "second") {
-    getMyLike();
-  } else if (newValue === "first") {
+  if (activeName.value === "first") {
     getMyPost();
-  } else if (newValue === "third") {
+  } else if (activeName.value === "second") {
+    getMyLike();
+  } else if (activeName.value === "third") {
     getMyStar();
   } else {
     getMyFollow();
   }
-});
+};
 
 const userStore = useUserStore();
 const myPostData = ref<Array<Post>>([]);

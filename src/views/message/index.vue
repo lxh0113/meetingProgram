@@ -158,7 +158,9 @@
 import {
   addToDoAPI,
   getAllMessageListAPI,
+  getMessagesAPI,
   getMessageToDoInfoAPI,
+  getToDosByYearMonthAPI,
 } from "@/apis/message";
 import { useUserStore } from "@/stores/userStore";
 import type { MessageList } from "@/types/home";
@@ -183,7 +185,7 @@ const toDoData = ref({
 
 const pageData = ref({
   totalMessages: 1,
-  totalPages: 1,
+  pageSize: 8,
 });
 
 let currentId: number = 1;
@@ -215,7 +217,8 @@ const ensureWorked = async () => {
   if (res.data.code === 200) {
     ElMessage.success("完成代办事项");
     // 重新获取并且排列
-    getMessage();
+    dialogVisible.value=false
+    getTodos();
   } else ElMessage.error("失败");
 };
 
@@ -230,17 +233,28 @@ const toEnsure = () => {
 };
 
 const getMessage = async () => {
+  // const res = await getMessagesAPI(userStore.user.id, pageData.value.pageSize);
+
   const res = await getAllMessageListAPI(userStore.user!.id);
 
   if (res.data.code === 200) {
     messageList.value = res.data.data.messagelist;
-    pageData.value = {
-      totalMessages: res.data.data.totalMessages,
-      totalPages: res.data.data.totalPages,
-    };
-
-    todoList.value = res.data.data.messageToDoList;
+    pageData.value.totalMessages = res.data.data.totalMessages;
   } else ElMessage.error("获取失败");
+};
+
+const getTodos = async () => {
+  const res = await getToDosByYearMonthAPI(
+    userStore.user.id,
+    new Date().getFullYear(),
+    new Date().getMonth()+1
+  );
+
+  if (res.data.code === 200) {
+    todoList.value = res.data.data.messageToDoList;
+  } else {
+    ElMessage.error(res.data.msg);
+  }
 };
 
 const toDoNumber = (day: string) => {
@@ -265,6 +279,7 @@ const toViewPrepare = () => {
 
 onMounted(() => {
   getMessage();
+  getTodos()
 });
 </script>
 

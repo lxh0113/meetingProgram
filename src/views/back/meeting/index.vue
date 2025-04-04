@@ -27,7 +27,7 @@
         <el-table-column prop="creator" label="创建人" />
         <el-table-column label="头像">
           <template #default="scope">
-            <el-avatar :src="scope.row.avatar">user</el-avatar>
+            <el-avatar :src="scope.row.url">user</el-avatar>
           </template>
         </el-table-column>
         <el-table-column prop="createTime" label="创建时间" />

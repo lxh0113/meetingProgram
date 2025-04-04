@@ -32,8 +32,30 @@
           <div class="rightContent" v-html="md.render(summary)"></div>
         </el-tab-pane>
         <el-tab-pane label="代办提醒" name="second"> </el-tab-pane>
-        <el-tab-pane label="人员名单" name="third"> </el-tab-pane>
-        <el-tab-pane label="导出" name="fourth"> </el-tab-pane>
+        <el-tab-pane label="人员名单" name="third">
+          <el-button type="primary" text="plain" @click="toExcel"
+              >导出成excel</el-button
+            >
+          <el-table
+            :data="[...signTableData, ...noSignTableData]"
+            ref="exportTableRef"
+            style="width: 100%"
+          >
+            <el-table-column prop="username" label="姓名" />
+            <el-table-column prop="email" label="邮箱" />
+            <el-table-column label="头像">
+              <template #default="scope">
+                <el-avatar :src="scope.row.avatar"></el-avatar>
+              </template>
+            </el-table-column>
+            <el-table-column label="签到情况">
+              <template #default="scope">
+                {{ scope.$index < signTableData.length ? "已到" : "未到" }}
+              </template>
+            </el-table-column>
+          </el-table>
+        </el-tab-pane>
+        <!-- <el-tab-pane label="导出" name="fourth"> </el-tab-pane> -->
       </el-tabs>
     </div>
   </div>
@@ -43,12 +65,15 @@
 import { useRoute } from "vue-router";
 import { onMounted, ref } from "vue";
 import { ElMessage, type TabsPaneContext } from "element-plus";
-import { getKnowledgeByUrlAPI } from "@/apis/api";
-import type { KnowledgeList } from "@/types/home";
+import { getKnowledgeByUrlAPI, getVideoTextAPI } from "@/apis/api";
+import type { KnowledgeList, User } from "@/types/home";
 import myVideo from "./video.vue";
 import { getSummaryByVideoAPI } from "@/apis/api";
-
+import * as xlsx from "xlsx";
 import MarkdownIt from "markdown-it";
+import { getConclusionAPI } from "@/apis/aiMeeting";
+import { getSignDetailsAPI } from "@/apis/meeting";
+import { useMeetingStore } from "@/stores/meetingStore";
 let md: MarkdownIt = new MarkdownIt();
 
 const activeName = ref("first");
@@ -119,19 +144,64 @@ const changeCurrentTime = (beginTime: string) => {
 const summary = ref("");
 
 const getSummary = async () => {
-  const res = await getSummaryByVideoAPI(url.value);
+  const res = await getVideoTextAPI(url.value);
 
   if (res.data.code === 200) {
     console.log(res.data.data);
 
-    summary.value = res.data.data;
+    const res2 = await getConclusionAPI(res.data.data);
+
+    // if(res2.data.)
+  } else {
+    ElMessage.error(res.data.message);
   }
+
+  // const res = await getSummaryByVideoAPI(url.value);
+
+  // if (res.data.code === 200) {
+  //   console.log(res.data.data);
+
+  //   summary.value = res.data.data;
+  // }
 };
 
 onMounted(() => {
   url.value = decodeURIComponent(route.params.url as string);
   getKnowledge();
   getSummary();
+});
+// 签到模块
+
+const meetingStore = useMeetingStore();
+
+const noSignTableData = ref<User[]>([]);
+const signTableData = ref<User[]>([]);
+
+const getSign = async () => {
+  const res = await getSignDetailsAPI(meetingStore.meetingSettings!.id!);
+
+  if (res.data.code === 200) {
+    noSignTableData.value = res.data.data.books;
+    signTableData.value = res.data.data.signs;
+  } else {
+    ElMessage.error("获取出错");
+  }
+};
+
+const exportTableRef = ref(null);
+const toExcel = () => {
+  // 导出成excel
+  const tableDom = exportTableRef.value?.$el;
+  if (!tableDom) {
+    return;
+  }
+
+  const wb = xlsx.utils.table_to_book(tableDom);
+  xlsx.writeFile(wb, "签到情况.xlsx");
+};
+
+onMounted(() => {
+  getSign();
 });
 </script>
 

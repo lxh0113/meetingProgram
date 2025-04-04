@@ -147,7 +147,7 @@ const getWordCloud=async()=>{
 }
 
 onMounted(() => {
-  // getPost()
+  getPost()
   getWordCloud()
 });
 </script>

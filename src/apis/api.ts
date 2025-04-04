@@ -19,3 +19,13 @@ export const getSummaryByVideoAPI = (videoUrl: string) => {
     },
   });
 };
+
+export const getVideoTextAPI = (videoUrl: string) => {
+  return http({
+    url: "/api/translate",
+    method: "POST",
+    data: {
+      videoUrl,
+    },
+  });
+};

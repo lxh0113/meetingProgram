@@ -36,8 +36,10 @@
         <span class="iconfont icon-star"></span>
         <span>{{ props.data.favorites }}</span>
       </span>
-      <el-tag type="primary" v-if="props.data.status === 0">待审核</el-tag>
-      <el-tag type="success" v-else-if="props.data.status === 1">已发布</el-tag>
+      <el-tag type="primary" v-if="props.data.status === '0'">待审核</el-tag>
+      <el-tag type="success" v-else-if="props.data.status === '1'"
+        >已发布</el-tag
+      >
       <el-tag type="danger" v-else>存在违规内容</el-tag>
     </div>
   </div>

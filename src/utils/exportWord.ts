@@ -2,6 +2,9 @@ import Docxtemplater from "docxtemplater";
 import PizZip from "pizzip";
 import PizZipUtils from "pizzip/utils/index.js";
 import { saveAs } from "file-saver";
+import { useDownloadStore } from "@/stores/downlowdStore";
+
+const downloadStore = useDownloadStore();
 
 export const exportWordDocx = () => {
   // 读取并获得模板文件的二进制内容
@@ -10,7 +13,7 @@ export const exportWordDocx = () => {
   }
 
   // demo.docx是模板。我们在导出的时候，会根据此模板来导出对应的数据
-  loadFile("meeting.docx", function (error: Error | null, content) {
+  loadFile("../../public/demo.docx", function (error: Error | null, content) {
     // 抛出异常
     if (error) {
       throw error;
@@ -24,8 +27,9 @@ export const exportWordDocx = () => {
     ) as Docxtemplater;
     // 设置模板变量的值
     doc.setData({
-      title: "John",
+      title: downloadStore.content,
     });
+
     try {
       // 用模板变量的值替换所有模板变量
       doc.render();
@@ -72,6 +76,6 @@ export const exportWordDocx = () => {
         "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     });
     // 将目标文件对象保存为目标类型的文件，并命名
-    saveAs(out, "output.docx");
+    saveAs(out, "智会通文档.docx");
   });
 };

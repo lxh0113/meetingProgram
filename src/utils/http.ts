@@ -26,10 +26,11 @@ http.interceptors.request.use(
     let reqUrl = config.url; // 直接获取到当前请求的 URL 地址
 
     const regex1 = new RegExp("^/rag/query.*$");
+    const regex2 = new RegExp("^/aiMeeting.*$");
 
     // 如果至少有一个模式匹配，则 isMatched 为 true
     if (
-      regex1.test(reqUrl!)
+      regex1.test(reqUrl!)||regex2.test(reqUrl!)
     ) {
       console.log(config.url);
     } else {

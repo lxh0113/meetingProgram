@@ -23,7 +23,7 @@ export const getMessagesAPI = (userId: number, pageNum: number) => {
 
 export const addToDoAPI = (
   userId: number,
-  messageId: number,
+  messageId: number|null,
   createTime: string,
   title: string,
   content: string
@@ -55,9 +55,18 @@ export const getMessageToDoInfoAPI = (messageToDoId: number) => {
   });
 };
 
-export const getToDosByYearMonthAPI = () => {
+export const getToDosByYearMonthAPI = (
+  userId: number,
+  year: number,
+  month: number
+) => {
   return http({
     url: "/message/todos",
     method: "GET",
+    params: {
+      userId,
+      year,
+      month,
+    },
   });
 };

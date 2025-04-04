@@ -120,19 +120,19 @@
           v-model:file-list="fileList"
           class="upload-demo"
           action="https://run.mocky.io/v3/9d059bf9-4660-45f2-925d-ce80ad6c4d15"
-          multiple
           :on-preview="handlePreview"
           :on-remove="handleRemove"
           :before-remove="beforeRemove"
-          :limit="3"
-          :on-exceed="handleExceed"
+          :limit="1"
+          :auto-upload="false"
+          :on-change="changeRemind"
         >
           <el-button type="primary">上传参会人员</el-button>
           <div @click.stop="">
             <span style="margin: 0px 20px">提醒方式：</span>
             <el-radio-group v-model="remindType">
-              <el-radio label="邮箱" value="邮箱"></el-radio>
-              <el-radio label="短信" value="短信"></el-radio>
+              <el-radio label="邮箱" :value="0"></el-radio>
+              <el-radio label="短信" :value="1"></el-radio>
             </el-radio-group>
           </div>
         </el-upload>
@@ -164,21 +164,19 @@
         <el-input v-model="bookData.password" placeholder=""></el-input>
       </el-form-item>
       <el-form-item label="文档">
-        <!-- <el-button type="primary" text="plain">AI生成参赛文档</el-button> -->
+        
         <el-upload
-          v-model:file-list="fileList"
+          v-model:file-list="meetingFileList"
           class="upload-demo"
-          action="https://run.mocky.io/v3/9d059bf9-4660-45f2-925d-ce80ad6c4d15"
+          action=""
           multiple
-          :on-preview="handlePreview"
-          :on-remove="handleRemove"
-          :before-remove="beforeRemove"
-          :limit="1"
-          :on-exceed="handleExceed"
+          :limit="5"
         >
           <el-button type="primary">上传参会文档</el-button>
-          <!-- <div>AI生成参赛文档</div> -->
-          <el-button @click.stop="aiGenerate" type="primary" text="plain"
+          <el-button
+            @click.stop="generateVisible = true"
+            type="primary"
+            text="plain"
             >AI生成参会文档</el-button
           >
         </el-upload>
@@ -194,6 +192,108 @@
       <div class="dialog-footer">
         <el-button @click="dialogVisible = false">取消</el-button>
         <el-button type="primary" @click="toConfirm"> 确认 </el-button>
+      </div>
+    </template>
+  </el-dialog>
+
+  <el-dialog
+    v-model="generateVisible"
+    width="600"
+    title="ai生成参赛文档"
+    append-to-body
+  >
+    <el-form :model="otherData" label-width="80" style="max-width: 540px">
+      <!-- 联系方式 -->
+      <el-form-item label="联系方式">
+        <el-input v-model="otherData.contact_info" />
+      </el-form-item>
+
+      <!-- 主办方 -->
+      <el-form-item label="主办方">
+        <el-input v-model="otherData.host" />
+      </el-form-item>
+
+      <!-- 个人简介 -->
+      <el-form-item label="会议简介">
+        <el-input
+          v-model="otherData.profile"
+          type="textarea"
+          :rows="3"
+          placeholder="请输入会议简介"
+        />
+      </el-form-item>
+
+      <!-- 相关资料 -->
+      <el-form-item label="相关资料">
+        <div class="key-value-list">
+          <div
+            v-for="(item, index) in relevantDataList"
+            :key="index"
+            class="list-item"
+          >
+            <el-input
+              v-model="item.key"
+              placeholder="名称"
+              style="width: 200px; margin-right: 10px"
+              @change="validateKey(index)"
+            />
+            <el-input
+              v-model="item.value"
+              placeholder="地址"
+              style="width: 200px; margin-right: 10px"
+            />
+            <el-button
+              type="danger"
+              icon="Delete"
+              circle
+              @click="removeItem(index)"
+            />
+          </div>
+          <el-button style="margin-top: 20px;" type="primary" @click="addItem">
+            <el-icon><Plus /></el-icon>
+            添加条目
+          </el-button>
+        </div>
+      </el-form-item>
+
+      <!-- 签到方式 -->
+      <el-form-item label="签到方式">
+        <el-input
+          v-model="otherData.sign_in_type"
+          type="textarea"
+          :rows="3"
+          placeholder="请输入签到方式"
+        />
+      </el-form-item>
+
+      <!-- 交通方式 -->
+      <!-- <el-form-item label="交通方式">
+        <el-input
+          v-model="otherData.transportation"
+          placeholder="请输入交通方式"
+        />
+      </el-form-item> -->
+
+      <el-form-item label="相关操作">
+        <img
+          v-if="isGenerate"
+          src="../../assets/img/ai.gif"
+          style="width: 80px; height: 80px"
+          alt=""
+        />
+        <el-button v-if="!isGenerate" type="primary" @click="aiGenerate"
+          >生成</el-button
+        >
+        <el-button v-if="generateResult !== ''" type="primary" @click="toView"
+          >查看结果</el-button
+        >
+      </el-form-item>
+    </el-form>
+
+    <template #footer>
+      <div class="dialog-footer">
+        <el-button @click="generateVisible = false">取消</el-button>
+        <!-- <el-button type="primary" @click="aiGenerate"> 确认 </el-button> -->
       </div>
     </template>
   </el-dialog>
@@ -213,10 +313,14 @@ import { useMeetingStore } from "@/stores/meetingStore";
 import {
   createMeetingAPI,
   joinMeetingAPI,
+  meetingRemindAPI,
   quicklyMeetingAPI,
 } from "@/apis/meeting";
 import { useUserStore } from "@/stores/userStore";
 import { getRecommendAPI } from "@/apis/forum";
+import type { UploadFile } from "antd";
+import { getGuideAPI } from "@/apis/aiMeeting";
+import { useDownloadStore } from "@/stores/downlowdStore";
 
 const router = useRouter();
 
@@ -248,7 +352,7 @@ const addFormData = ref<MeetingSettings>({
 const needPassword = ref(false);
 // 是否需要提醒
 const isRemind = ref(false);
-const remindType = ref("邮箱");
+const remindType = ref(0);
 const bookData = ref<MeetingSetting>({
   title: "",
   userId: 1,
@@ -271,6 +375,8 @@ const bookMeeting = async () => {
 
   if (res.data.code === 200) {
     ElMessage.success("预约成功");
+
+    uploadRemind(res.data.data);
   } else {
     ElMessage.error(res.data.message);
   }
@@ -329,45 +435,108 @@ const toConfirm = async () => {
   dialogVisible.value = false;
 };
 
-// 处理上传参会文档
-
-const fileList = ref<UploadUserFile[]>([
-  {
-    name: "参会文档示例",
-    url: "https://element-plus.org/images/element-plus-logo.svg",
-  },
-]);
-
-const handleRemove: UploadProps["onRemove"] = (file, uploadFiles) => {
-  console.log(file, uploadFiles);
-};
-
-const handlePreview: UploadProps["onPreview"] = (uploadFile) => {
-  console.log(uploadFile);
-};
-
-const handleExceed: UploadProps["onExceed"] = (files, uploadFiles) => {
-  ElMessage.warning(
-    `The limit is 3, you selected ${files.length} files this time, add up to ${
-      files.length + uploadFiles.length
-    } totally`
-  );
-};
-
-const beforeRemove: UploadProps["beforeRemove"] = (uploadFile, uploadFiles) => {
-  return ElMessageBox.confirm(
-    `Cancel the transfer of ${uploadFile.name} ?`
-  ).then(
-    () => true,
-    () => false
-  );
-};
+// 参会文档
+const meetingFileList = ref<UploadUserFile[]>([]);
 
 // ai 生成参会文档
-const aiGenerate = () => {};
+
+const isGenerate = ref(false);
+const generateResult = ref("");
+const downloadStore=useDownloadStore()
+
+const aiGenerate = async () => {
+
+  otherData.value.relevant_data=convertToRecord()
+
+  isGenerate.value = true;
+
+  const res = await getGuideAPI({
+    address: bookData.value.address!,
+    datetime: bookData.value.startTime,
+    duration: bookData.value.duration + "",
+    title: bookData.value.title,
+    ...otherData.value,
+  });
+
+  isGenerate.value = false;
+  console.log(res)
+  if (res.data.status === 'success') {
+    generateResult.value=res.data.data
+    downloadStore.setContent(res.data.data)
+  } else {
+    ElMessage.error("出错了");
+    generateVisible.value = false;
+  }
+};
+
+const toView=()=>{
+  window.open('/view')
+}
+
+const generateVisible = ref(false);
+const otherData = ref({
+  contact_info: userStore.user.phone,
+  host: userStore.user.username,
+  profile: "",
+  relevant_data: {} as Record<string, string>,
+  sign_in_type: "在线签到",
+  transportation: "",
+});
+
+interface KeyValuePair {
+  key: string;
+  value: string;
+}
+
+const relevantDataList = ref<KeyValuePair[]>([{ key: "", value: "" }]);
+
+// 添加条目
+const addItem = () => {
+  relevantDataList.value.push({ key: "", value: "" });
+};
+
+// 删除条目
+const removeItem = (index: number) => {
+  if (relevantDataList.value.length > 1) {
+    relevantDataList.value.splice(index, 1);
+  }
+};
+
+// 转换函数（在提交时调用）
+const convertToRecord = (): Record<string, string> => {
+  const result: Record<string, string> = {};
+
+  relevantDataList.value.forEach((item) => {
+    if (item.key.trim()) {
+      // 过滤空key
+      result[item.key.trim()] = item.value.trim();
+    }
+  });
+
+  return result;
+};
+
+// 校验键名唯一性
+const validateKey = (currentIndex: number) => {
+  const currentKey = relevantDataList.value[currentIndex].key
+  if (!currentKey) return
+
+  const duplicateIndex = relevantDataList.value.findIndex(
+    (item, index) => item.key === currentKey && index !== currentIndex
+  )
+
+  if (duplicateIndex !== -1) {
+    ElMessage.warning(`键名 "${currentKey}" 已存在，请修改`)
+    relevantDataList.value[currentIndex].key = ''
+  }
+}
 
 const getAddress = (item: any) => {
   console.log(item);
+
+  bookData.value.address = item.address;
+  bookData.value.lat = item.lat;
+  bookData.value.lng = item.lng;
 };
 
 // 获取推荐
@@ -380,6 +549,57 @@ const getRecommend = async () => {
   if (res.status === 200) {
     recommendList.value = res.data.recommended_posts;
   } else ElMessage.error("获取失败");
+};
+
+// 参会提醒
+
+const fileList = ref<UploadUserFile[]>([]);
+
+const handleRemove: UploadProps["onRemove"] = (file, uploadFiles) => {
+  console.log(file, uploadFiles);
+};
+
+const handlePreview: UploadProps["onPreview"] = (uploadFile) => {
+  console.log(uploadFile);
+};
+
+const beforeRemove: UploadProps["beforeRemove"] = (uploadFile, uploadFiles) => {
+  return ElMessageBox.confirm(
+    `Cancel the transfer of ${uploadFile.name} ?`
+  ).then(
+    () => true,
+    () => false
+  );
+};
+
+const remindFile = ref();
+
+const changeRemind = (uploadFile: UploadFile) => {
+  console.log(uploadFile);
+  remindFile.value = uploadFile.raw;
+
+  fileList.value = [
+    {
+      name: uploadFile.name,
+      url: URL.createObjectURL(uploadFile.originFileObj),
+    },
+  ];
+};
+
+const uploadRemind = async (id: number) => {
+  if (!remindFile.value) {
+    ElMessage.error("您为上传参会文档");
+    return;
+  }
+  let data = new FormData();
+  data.append("file", remindFile.value);
+  const res = await meetingRemindAPI(id, remindType.value, data);
+
+  if (res.data.code === 200) {
+    ElMessage.success("上传参会文档成功");
+  } else {
+    ElMessage.error(res.data.message);
+  }
 };
 
 onMounted(() => {

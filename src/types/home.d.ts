@@ -45,7 +45,8 @@ interface Post {
   label: string;
   content: string;
   author: string;
-  status: number;
+  // 0表示未发布，1表示已发布，未发布无法在论坛中查看
+  status: string;
 }
 
 export interface AdminPost extends Post {
@@ -117,6 +118,7 @@ export type MessageList = Array<Message>;
 export type CurrentConversation = {
   id: number;
   title: string;
+  user_id:string;
   search_enabled: boolean;
 };
 
@@ -220,3 +222,23 @@ export type Knowledge = {
 };
 
 export type KnowledgeList = Array<Knowledge>;
+
+export type GenerateSpeech = {
+  coreGoal: string;
+  meetingType: string;
+  keyContent: string;
+  wordsNum: string;
+};
+
+export interface Guide {
+   address: string;
+   contact_info: string;
+   datetime: string;
+   duration: string;
+   host: string;
+   profile: string;
+   relevant_data?: Object;
+   sign_in_type: string;
+   title: string;
+   transportation?: string;
+}

@@ -196,7 +196,7 @@ const messageList = ref<AgentMessageList>([
   },
   {
     role: "assistant",
-    content: "你好我是你的ai小助手",
+    content: "你好，我是智会精灵",
   },
 ]);
 
