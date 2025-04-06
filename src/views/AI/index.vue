@@ -78,7 +78,7 @@
                   :action="ragUploadUrl"
                   :limit="10"
                   :data="{
-                    process_now: true,
+                    meeting_id: null,
                   }"
                   name="files"
                 >
@@ -364,7 +364,7 @@ const startRag = async () => {
 
   // isLoading.value = true;
 
-  const res = await queryDocAPI(input.value);
+  const res = await queryDocAPI(input.value, null);
   console.log(res);
   if (res.status === 200) {
     isLoading.value = false;
@@ -686,8 +686,7 @@ onMounted(() => {
 });
 
 const audioChat = async () => {
-
-  preStart()
+  preStart();
   // 调用大模型文档
 
   const sse = new SSEService();
@@ -715,8 +714,8 @@ const audioChat = async () => {
     },
     header,
     () => {
-      let content=messageList.value[messageList.value.length-1].content
-      console.log(content)
+      let content = messageList.value[messageList.value.length - 1].content;
+      console.log(content);
       handleTextToAudio(content);
     }
   );

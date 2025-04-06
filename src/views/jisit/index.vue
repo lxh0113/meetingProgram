@@ -115,9 +115,9 @@
             :icon="Refresh"
           ></el-button>
           <el-button type="primary">点击上传</el-button>
-          <el-button @click.stop="aiGenerate" text="plain" type="primary"
+          <!-- <el-button @click.stop="aiGenerate" text="plain" type="primary"
             >AI会议资料总结</el-button
-          >
+          > -->
           <template #tip>
             <div class="el-upload__tip">可选择文件上传</div>
           </template>
@@ -374,7 +374,7 @@ import {
   type UploadRawFile,
   type UploadUserFile,
 } from "element-plus";
-import { agentExecuteAPI, fileDownloadAPI } from "@/apis/ai/ai.ts";
+import { fileDownloadAPI } from "@/apis/ai/ai.ts";
 import type {
   AgentMessageList,
   GenerateSpeech,
@@ -384,12 +384,7 @@ import type {
 import { SSEService } from "@/utils/sse";
 import { v4 as uuidv4 } from "uuid";
 import { API_ENDPOINTS } from "@/apis/ai/aiSse";
-import {
-  agentId,
-  getHeaders,
-  speechAgentId,
-  summaryAgentId,
-} from "@/apis/ai/base";
+import { agentId, getHeaders } from "@/apis/ai/base";
 import { copyText } from "vue3-clipboard";
 
 import MarkdownIt from "markdown-it";
@@ -491,8 +486,6 @@ const startAgent = async () => {
     role: "assistant",
     content: "",
   });
-
-  sendText.value = "";
 
   const sse = new SSEService();
 
@@ -917,7 +910,7 @@ const beforeUpload = async (rawFile: UploadRawFile) => {
 
   let data = new FormData();
   data.append("files", currentFile.value);
-  data.append("process_now", "true");
+  data.append("meeting_id", route.params.id as string);
 
   const res = await uploadFileAPI(data);
 
@@ -1107,7 +1100,7 @@ const getSpeech = async () => {
 
   const res = await generateSpeechAPI(speechData.value);
 
-  if (res.data.status === 200) {
+  if (res.data.status === "success") {
     speech.value = res.data.data;
   } else {
     ElMessage.error("生成发言稿出错了");

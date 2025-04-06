@@ -85,7 +85,7 @@
     </div>
   </div>
 
-  <el-dialog
+  <!-- <el-dialog
     draggable="true"
     v-model="dialogVisible"
     :close-on-press-escape="false"
@@ -112,7 +112,7 @@
     <div class="mySearachItems">
       <SearchItem v-for="item in searchData" :item="item" />
     </div>
-  </el-dialog>
+  </el-dialog> -->
 
   <el-dialog
     v-model="updateTitleDialogVisible"

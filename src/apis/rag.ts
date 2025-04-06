@@ -29,12 +29,13 @@ export const getTaskStatusAPI = (task_id: string) => {
 };
 
 // 询问
-export const queryDocAPI = (query: string) => {
+export const queryDocAPI = (query: string, meeting_id: string | null) => {
   return http({
     url: `${baseUrl}/query`, // 添加baseUrl前缀
     method: "POST",
     data: {
       query,
+      meeting_id,
       filters: {},
     },
   });
@@ -47,4 +48,3 @@ export const isHealthAPI = () => {
     method: "GET",
   });
 };
-
